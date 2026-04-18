@@ -813,6 +813,26 @@ body::before {
   font-size: 1.22rem;
 }
 
+.report-source-card,
+.report-source-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.report-source-card {
+  min-height: 100%;
+  margin-top: 14px;
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 240, 231, 0.94));
+}
+
+.report-source-copy strong {
+  font-size: 1.14rem;
+  line-height: 1.4;
+}
+
 .table-wrap {
   overflow: auto;
   margin-top: 14px;

@@ -403,6 +403,42 @@
 
             <div class="mini-metrics" id="cashier-kpis"></div>
 
+            <div class="dual-grid">
+              <article class="subpanel accent-card">
+                <div class="subpanel-head">
+                  <div>
+                    <h3>Comissão por faixa de venda</h3>
+                    <p>
+                      Configure a taxa aplicada sobre a venda declarada de cada caixa. Use `0` no
+                      teto da última faixa para indicar "acima da anterior".
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    class="ghost-button add-row"
+                    data-array="cashierCommissionRules"
+                  >
+                    Adicionar faixa
+                  </button>
+                </div>
+                <div id="cashier-commission-summary" class="highlight-card"></div>
+                <div id="cashier-commission-table"></div>
+              </article>
+
+              <article class="subpanel">
+                <div class="subpanel-head">
+                  <div>
+                    <h3>Leitura do relatório por caixa</h3>
+                    <p>
+                      Informe qual relatório traz o valor de venda de cada caixa para eu preencher
+                      essa grade com mais precisão.
+                    </p>
+                  </div>
+                </div>
+                <div id="cashier-report-card" class="report-source-card"></div>
+              </article>
+            </div>
+
             <article class="subpanel">
               <div class="subpanel-head">
                 <div>

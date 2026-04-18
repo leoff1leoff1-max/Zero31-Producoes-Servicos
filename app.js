@@ -50,6 +50,12 @@ const SOURCE_GUIDES = {
   },
 };
 
+const defaultCashierCommissionRules = () => [
+  { limit: 3500, rate: 0.5 },
+  { limit: 6500, rate: 1.0 },
+  { limit: 0, rate: 1.5 },
+];
+
 const eventBlueprint = {
   event: {
     company: "Zero31 Produções & Serviços",
@@ -74,6 +80,8 @@ const eventBlueprint = {
     baseWorkbookPath: "J:\\Meu Drive\\BAR\\CLIENTES\\BOATE OKTA\\BAR OKTA MODELO.xlsx",
     productReportReference: "",
     productReportOrigin: "",
+    cashierSalesReportReference: "",
+    cashierSalesReportOrigin: "",
     uploadReference: "",
     reportOriginNotes: "",
     lastImportedFrom: "",
@@ -97,6 +105,7 @@ const eventBlueprint = {
   suppliesExpenses: [],
   additionalExpenses: [],
   cashiers: [],
+  cashierCommissionRules: defaultCashierCommissionRules(),
   productionConsumption: [],
   costSales: [],
   artisticConsumption: [],
@@ -148,6 +157,10 @@ const schemas = {
     { key: "sangria", label: "Sangria", type: "number", step: "0.01" },
     { key: "voucher", label: "Voucher", type: "number", step: "0.01" },
     { key: "fixed", label: "Fixo", type: "number", step: "0.01" },
+  ],
+  cashierCommissionRules: [
+    { key: "limit", label: "Teto da faixa (R$)", type: "number", step: "0.01" },
+    { key: "rate", label: "Comissao (%)", type: "number", step: "0.01" },
   ],
   productionConsumption: [
     { key: "person", label: "Responsável", type: "text" },
@@ -270,6 +283,7 @@ function loadState() {
         suppliesExpenses: parsed.suppliesExpenses,
         additionalExpenses: parsed.additionalExpenses,
         cashiers: parsed.cashiers,
+        cashierCommissionRules: parsed.cashierCommissionRules,
         productionConsumption: parsed.productionConsumption,
         costSales: parsed.costSales,
         artisticConsumption: parsed.artisticConsumption,
@@ -313,6 +327,10 @@ function createEventTemplate(overrides = {}) {
     suppliesExpenses: normalizeCollection(overrides.suppliesExpenses, base.suppliesExpenses),
     additionalExpenses: normalizeCollection(overrides.additionalExpenses, base.additionalExpenses),
     cashiers: normalizeCollection(overrides.cashiers, base.cashiers),
+    cashierCommissionRules: normalizeCollection(
+      overrides.cashierCommissionRules,
+      base.cashierCommissionRules,
+    ),
     productionConsumption: normalizeCollection(
       overrides.productionConsumption,
       base.productionConsumption,
@@ -631,6 +649,10 @@ function renderHero(activeEvent, metrics) {
     tags.push("Relatório de produtos informado");
   }
 
+  if (activeEvent.source.cashierSalesReportReference) {
+    tags.push("RelatÃ³rio de venda por caixa informado");
+  }
+
   document.getElementById("hero-tags").innerHTML = tags
     .map((tag) => `<span class="hero-tag">${tag}</span>`)
     .join("");
@@ -677,27 +699,45 @@ function renderSourceSection(activeEvent) {
       "Ex.: SpotPass > Relatórios, export do PDV, planilha do fornecedor",
     ),
   ];
+  const cashierReportFields = [
+    sourceFieldTemplate(
+      "Relatorio de venda por caixa",
+      "cashierSalesReportReference",
+      activeEvent.source.cashierSalesReportReference,
+      "Ex.: resumo-caixas-okta.xlsx ou relatorio de venda por operador",
+    ),
+    sourceFieldTemplate(
+      "Origem da venda por caixa",
+      "cashierSalesReportOrigin",
+      activeEvent.source.cashierSalesReportOrigin,
+      "Ex.: fechamento dos PDVs, export do sistema ou conferencia manual",
+    ),
+  ];
   const configFields = {
     spotpass: [
       ...productReportFields,
+      ...cashierReportFields,
       sourceFieldTemplate("Nome do evento no SpotPass", "spotpassSearchName", activeEvent.source.spotpassSearchName, "Ex.: Okta - 17/04/2026"),
       sourceFieldTemplate("Link direto do evento", "spotpassEventLink", activeEvent.source.spotpassEventLink, "Cole aqui o link do dashboard, se tiver"),
       sourceFieldTemplate("Observações da origem", "reportOriginNotes", activeEvent.source.reportOriginNotes, "Ex.: buscar evento de bar e portaria separadamente"),
     ],
     "base-workbook": [
       ...productReportFields,
+      ...cashierReportFields,
       sourceFieldTemplate("Nome da planilha base", "baseWorkbookName", activeEvent.source.baseWorkbookName, "Nome do arquivo modelo"),
       sourceFieldTemplate("Caminho da planilha base", "baseWorkbookPath", activeEvent.source.baseWorkbookPath, "Ex.: J:\\Meu Drive\\..."),
       sourceFieldTemplate("Observações da origem", "reportOriginNotes", activeEvent.source.reportOriginNotes, "Ex.: usar essa planilha como estrutura principal"),
     ],
     upload: [
       ...productReportFields,
+      ...cashierReportFields,
       sourceFieldTemplate("Arquivo ou referência do upload", "uploadReference", activeEvent.source.uploadReference, "Ex.: relatório-vendas-okta.xlsx"),
       sourceFieldTemplate("Origem / observações", "reportOriginNotes", activeEvent.source.reportOriginNotes, "Ex.: PDF do sistema X, print da máquina, export do POS"),
       sourceFieldTemplate("Última importação", "lastImportedFrom", activeEvent.source.lastImportedFrom, "Opcional"),
     ],
     manual: [
       ...productReportFields,
+      ...cashierReportFields,
       sourceFieldTemplate("Observações da origem", "reportOriginNotes", activeEvent.source.reportOriginNotes, "Ex.: preencher manualmente a partir da conferência da equipe"),
       sourceFieldTemplate("Planilha base de apoio", "baseWorkbookPath", activeEvent.source.baseWorkbookPath, "Opcional"),
       sourceFieldTemplate("Última referência usada", "lastImportedFrom", activeEvent.source.lastImportedFrom, "Opcional"),
@@ -867,10 +907,32 @@ function renderOperationSection(activeEvent, metrics) {
 function renderCashierSection(activeEvent, metrics) {
   document.getElementById("cashier-kpis").innerHTML = [
     miniCard("Venda declarada", formatCurrency(metrics.cashiersSales), `${formatInteger(activeEvent.cashiers.length)} caixas`),
+    miniCard("Total fechado", formatCurrency(metrics.cashiersClosedTotal), "Somatorio de meios e ajustes"),
     miniCard("Diferença consolidada", formatCurrency(metrics.cashiersDifference), Math.abs(metrics.cashiersDifference) <= 0.01 ? "Sem divergência relevante" : "Conferir fechamento"),
     miniCard("Total a pagar", formatCurrency(metrics.cashiersPayable), "Fixo + comissão dos operadores"),
   ].join("");
 
+  document.getElementById("cashier-commission-summary").innerHTML = `
+    <span class="metric-label">Regra ativa</span>
+    <strong>${formatCommissionRuleSummary(activeEvent.cashierCommissionRules)}</strong>
+    <span class="metric-hint">A taxa da faixa encontrada e aplicada sobre a venda declarada de cada caixa.</span>
+  `;
+
+  document.getElementById("cashier-report-card").innerHTML = `
+    <div class="report-source-copy">
+      <span class="metric-label">Relatorio de venda por caixa</span>
+      <strong>${escapeHtml(activeEvent.source.cashierSalesReportReference || "Nao informado")}</strong>
+      <span class="metric-hint">${escapeHtml(activeEvent.source.cashierSalesReportOrigin || "Defina a origem desse relatorio em Fontes para eu localizar a venda de cada caixa.")}</span>
+    </div>
+  `;
+
+  renderCollectionTable(
+    "cashier-commission-table",
+    "cashierCommissionRules",
+    activeEvent.cashierCommissionRules,
+    (row, index, rows) => [formatCommissionBand(row, index, rows)],
+    ["Faixa lida"],
+  );
   renderCashierTable(activeEvent.cashiers, metrics.cashiersDetails);
 }
 
@@ -985,7 +1047,7 @@ function renderCollectionTable(containerId, arrayName, rows, readonlyBuilder, re
               )
               .join("");
 
-            const readonlyCells = readonlyBuilder(row)
+            const readonlyCells = readonlyBuilder(row, index, rows)
               .map((value) => `<td class="readonly">${value}</td>`)
               .join("");
 
@@ -1143,12 +1205,13 @@ function computeMetrics(eventRecord) {
       toNumber(cashier.sangria) +
       toNumber(cashier.voucher);
     const difference = toNumber(cashier.sale) - total;
-    const commission = cashierCommission(total);
+    const commission = cashierCommission(toNumber(cashier.sale), eventRecord.cashierCommissionRules);
     const payable = toNumber(cashier.fixed) + commission;
     return { ...cashier, total, difference, commission, payable };
   });
 
   const cashiersSales = sum(eventRecord.cashiers, (cashier) => toNumber(cashier.sale));
+  const cashiersClosedTotal = sum(cashiersDetails, (cashier) => cashier.total);
   const cashiersDifference = sum(cashiersDetails, (cashier) => cashier.difference);
   const cashiersPayable = sum(cashiersDetails, (cashier) => cashier.payable);
 
@@ -1210,6 +1273,7 @@ function computeMetrics(eventRecord) {
     expensesGrand,
     cashiersDetails,
     cashiersSales,
+    cashiersClosedTotal,
     cashiersDifference,
     cashiersPayable,
     barProductCount: eventRecord.barProducts.length,
@@ -1246,6 +1310,14 @@ function buildAlerts(eventRecord, data) {
       level: "attention",
       title: "Relatório de produtos não carregado",
       body: "Informe o relatório de produtos do evento para eu conseguir preencher corretamente itens, categorias e vendas do bar.",
+    });
+  }
+
+  if (!eventRecord.source.cashierSalesReportReference) {
+    alerts.push({
+      level: "attention",
+      title: "Relatorio de venda por caixa nao carregado",
+      body: "Informe o relatorio com o valor vendido por cada caixa para eu preencher as vendas individuais e calcular a comissao corretamente.",
     });
   }
 
@@ -1328,6 +1400,8 @@ function buildWorkflow(eventRecord, context) {
 
   const sourceProgress = ratio([
     Boolean(eventRecord.source.type),
+    Boolean(eventRecord.source.productReportReference),
+    Boolean(eventRecord.source.cashierSalesReportReference),
     eventRecord.source.type !== "spotpass" || Boolean(eventRecord.source.spotpassSearchName),
     eventRecord.source.type !== "base-workbook" || Boolean(eventRecord.source.baseWorkbookPath),
     eventRecord.source.type !== "upload" || Boolean(eventRecord.source.uploadReference),
@@ -1416,11 +1490,51 @@ function paymentTotal(payment) {
   return toNumber(payment.debito) + toNumber(payment.pix) + toNumber(payment.credito);
 }
 
-function cashierCommission(total) {
-  if (total <= 3500) return total * 0.005;
-  if (total <= 8000) return total * 0.01;
-  if (total <= 15000) return total * 0.015;
-  return total * 0.02;
+function cashierCommission(sale, rules = []) {
+  const totalSale = toNumber(sale);
+  if (totalSale <= 0) return 0;
+
+  const normalizedRules = sortCommissionRules(rules);
+  if (normalizedRules.length === 0) return 0;
+
+  const matchedRule =
+    normalizedRules.find((rule) => rule.limit > 0 && totalSale <= rule.limit) ||
+    normalizedRules[normalizedRules.length - 1];
+
+  return totalSale * (toNumber(matchedRule.rate) / 100);
+}
+
+function sortCommissionRules(rules = []) {
+  return [...rules]
+    .map((rule) => ({
+      limit: toNumber(rule.limit),
+      rate: toNumber(rule.rate),
+    }))
+    .sort((left, right) => {
+      const leftLimit = left.limit > 0 ? left.limit : Number.POSITIVE_INFINITY;
+      const rightLimit = right.limit > 0 ? right.limit : Number.POSITIVE_INFINITY;
+      return leftLimit - rightLimit;
+    });
+}
+
+function formatCommissionBand(rule, index, rules) {
+  const currentRule = rules[index] || rule || { limit: 0 };
+  const previousRule = rules[index - 1];
+
+  if (toNumber(currentRule.limit) > 0) {
+    return `AtÃ© ${formatCurrency(currentRule.limit)}`;
+  }
+
+  return previousRule ? `Acima de ${formatCurrency(previousRule.limit)}` : "Sem teto";
+}
+
+function formatCommissionRuleSummary(rules = []) {
+  const sortedRules = sortCommissionRules(rules);
+  if (sortedRules.length === 0) return "Nenhuma faixa configurada";
+
+  return sortedRules
+    .map((rule, index) => `${formatCommissionBand(rule, index, sortedRules)}: ${formatPercent(rule.rate / 100)}`)
+    .join(" | ");
 }
 
 function generateInsights(eventRecord, metrics) {
@@ -1540,6 +1654,7 @@ function loadImportedState(imported) {
       suppliesExpenses: imported.suppliesExpenses,
       additionalExpenses: imported.additionalExpenses,
       cashiers: imported.cashiers,
+      cashierCommissionRules: imported.cashierCommissionRules,
       productionConsumption: imported.productionConsumption,
       costSales: imported.costSales,
       artisticConsumption: imported.artisticConsumption,
@@ -1753,4 +1868,8 @@ function escapeAttribute(value) {
     .replaceAll('"', "&quot;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
+}
+
+function escapeHtml(value) {
+  return escapeAttribute(value);
 }
