@@ -1,123 +1,99 @@
-const STORAGE_KEY = "zero31-fechamento-pro-v2";
+const STORAGE_KEY = "zero31-fechamento-hub-v1";
 
-const defaultState = {
+const SOURCE_OPTIONS = [
+  { id: "spotpass", label: "SpotPass", hint: "Buscar o evento direto no painel operacional." },
+  {
+    id: "base-workbook",
+    label: "Planilha base",
+    hint: "Usar o modelo principal de fechamento como referência central.",
+  },
+  { id: "upload", label: "Upload de relatório", hint: "Subir export, PDF, planilha ou material externo." },
+  { id: "manual", label: "Preenchimento manual", hint: "Lançar tudo manualmente dentro do sistema." },
+];
+
+const SOURCE_GUIDES = {
+  spotpass: {
+    title: "Puxar do SpotPass",
+    steps: [
+      "Você me informa o nome exato do evento como ele aparece na busca do SpotPass.",
+      "Se houver link direto, eu uso isso para acelerar a localização do dashboard certo.",
+      "Depois mapeio os relatórios e uso esses dados para preencher o fechamento base.",
+    ],
+  },
+  "base-workbook": {
+    title: "Usar a planilha base",
+    steps: [
+      "A planilha modelo vira a estrutura-mãe do evento.",
+      "Eu comparo o relatório externo com esse modelo e preencho os blocos corretos.",
+      "Essa opção é ideal quando o evento já nasce dentro do padrão do fechamento atual.",
+    ],
+  },
+  upload: {
+    title: "Importar arquivos",
+    steps: [
+      "Você envia o relatório em Excel, CSV, PDF, print ou outro formato disponível.",
+      "Eu extraio os dados relevantes e organizo por vendas, caixas, despesas e consumo.",
+      "Depois traduzo isso para o fechamento consolidado do evento.",
+    ],
+  },
+  manual: {
+    title: "Lançamento manual",
+    steps: [
+      "Usamos o workspace para digitar ou revisar os números manualmente.",
+      "É a opção mais útil quando os dados vêm quebrados, incompletos ou em várias fontes.",
+      "O sistema continua calculando o fechamento e validando inconsistências automaticamente.",
+    ],
+  },
+};
+
+const eventBlueprint = {
   event: {
     company: "Zero31 Produções & Serviços",
-    name: "Boate OKTA | Evento Modelo",
-    client: "Cliente exemplo",
-    date: "2026-04-18",
-    venue: "Belo Horizonte",
-    stage: "Pós-evento",
-    manager: "Equipe Financeira",
-    expectedAudience: 1200,
-    spotpassSearchName: "Okta - 17/04/2026",
-    spotpassEventLink: "",
+    name: "",
+    client: "",
+    date: "",
+    venue: "",
+    stage: "Rascunho",
+    manager: "",
+    expectedAudience: 0,
     serviceRate: 0.08,
     debitRate: 0.023,
     pixRate: 0.023,
     creditRate: 0.038,
-    notes:
-      "Operação piloto da Zero31. Use este modelo como base e substitua pelos números reais do evento.",
+    notes: "",
+  },
+  source: {
+    type: "spotpass",
+    spotpassSearchName: "",
+    spotpassEventLink: "",
+    baseWorkbookName: "BAR OKTA MODELO.xlsx",
+    baseWorkbookPath: "J:\\Meu Drive\\BAR\\CLIENTES\\BOATE OKTA\\BAR OKTA MODELO.xlsx",
+    uploadReference: "",
+    reportOriginNotes: "",
+    lastImportedFrom: "",
   },
   modulePayments: {
-    bar: { debito: 8200, pix: 6400, credito: 14800 },
-    ticket: { debito: 2100, pix: 1800, credito: 6900 },
-    tobacco: { debito: 320, pix: 440, credito: 890 },
+    bar: { debito: 0, pix: 0, credito: 0 },
+    ticket: { debito: 0, pix: 0, credito: 0 },
+    tobacco: { debito: 0, pix: 0, credito: 0 },
   },
-  barProducts: [
-    { name: "Água", category: "Soft", cost: 1.25, price: 5, soldQty: 110, productionQty: 6 },
-    { name: "Red Bull", category: "Soft", cost: 6.99, price: 22, soldQty: 92, productionQty: 4 },
-    { name: "Heineken Lata 350", category: "Cerveja", cost: 4.79, price: 17, soldQty: 185, productionQty: 10 },
-    { name: "Combo Smirnoff", category: "Combos", cost: 60.86, price: 350, soldQty: 18, productionQty: 2 },
-    { name: "Gin Tônica", category: "Drinks", cost: 24.5, price: 35, soldQty: 66, productionQty: 3 },
-    { name: "Espumante Chandon", category: "Garrafa", cost: 79.9, price: 200, soldQty: 14, productionQty: 1 },
-  ],
-  ticketSales: [
-    { name: "Ingresso pista", qty: 420, price: 40 },
-    { name: "Ingresso premium", qty: 85, price: 85 },
-    { name: "Cortesia convertida", qty: 18, price: 20 },
-  ],
-  tobaccoSales: [
-    { name: "Bala de goma", qty: 64, price: 3 },
-    { name: "Cigarro Mandelle", qty: 22, price: 4 },
-    { name: "Narguilé refil alcoólico", qty: 14, price: 100 },
-    { name: "Produto dinâmico", qty: 19, price: 25 },
-  ],
+  barProducts: [],
+  ticketSales: [],
+  tobaccoSales: [],
   operationalExpenses: [
-    { name: "Sistema de vendas", qty: 1, unit: 30 },
-    { name: "Financeiro", qty: 2, unit: 250 },
-    { name: "Auxiliar financeiro", qty: 1, unit: 180 },
-    { name: "Coordenador geral", qty: 1, unit: 250 },
-    { name: "Coordenador de bar", qty: 2, unit: 200 },
-    { name: "Atendentes de bar", qty: 8, unit: 130 },
+    { name: "Sistema de vendas", qty: 0, unit: 30 },
+    { name: "Financeiro", qty: 0, unit: 250 },
+    { name: "Auxiliar financeiro", qty: 0, unit: 180 },
+    { name: "Coordenador geral", qty: 0, unit: 250 },
+    { name: "Coordenador de bar", qty: 0, unit: 200 },
+    { name: "Atendentes de bar", qty: 0, unit: 130 },
   ],
-  suppliesExpenses: [
-    { name: "Refrigerante 2L", qty: 12, unit: 7.99 },
-    { name: "Foguinhos", qty: 24, unit: 3.89 },
-    { name: "Gelo escama", qty: 20, unit: 12 },
-    { name: "Gelo cubo", qty: 18, unit: 8 },
-    { name: "Copo descartável", qty: 3, unit: 149 },
-    { name: "Frete bar", qty: 2, unit: 95 },
-  ],
-  additionalExpenses: [
-    { name: "Sangria produção", qty: 1, unit: 500 },
-    { name: "Ajuste equipe volante", qty: 1, unit: 260 },
-    { name: "Reembolso emergencial", qty: 1, unit: 180 },
-  ],
-  cashiers: [
-    {
-      name: "Caixa 001",
-      sale: 7800,
-      troco: 300,
-      credito: 2800,
-      debito: 1700,
-      dinheiro: 2300,
-      pix: 1000,
-      devolucoes: 0,
-      sangria: 0,
-      voucher: 0,
-      fixed: 120,
-    },
-    {
-      name: "Caixa 002",
-      sale: 6950,
-      troco: 250,
-      credito: 2100,
-      debito: 1400,
-      dinheiro: 2150,
-      pix: 950,
-      devolucoes: 0,
-      sangria: 0,
-      voucher: 0,
-      fixed: 120,
-    },
-    {
-      name: "Caixa 003",
-      sale: 8420,
-      troco: 350,
-      credito: 3120,
-      debito: 1980,
-      dinheiro: 2140,
-      pix: 1180,
-      devolucoes: 0,
-      sangria: 0,
-      voucher: 0,
-      fixed: 120,
-    },
-  ],
-  productionConsumption: [
-    { person: "Equipe produção", qty: 12, product: "Água", unit: 1.25 },
-    { person: "Equipe produção", qty: 8, product: "Refrigerante", unit: 3.39 },
-    { person: "Segurança", qty: 10, product: "Água", unit: 1.25 },
-  ],
-  costSales: [
-    { person: "Staff interno", qty: 3, product: "Combo Smirnoff", unit: 60.86 },
-    { person: "Equipe operação", qty: 8, product: "Gin Tônica", unit: 24.5 },
-  ],
-  artisticConsumption: [
-    { person: "Artista principal", qty: 3, product: "Red Bull", unit: 6.99 },
-    { person: "Backstage", qty: 4, product: "Água", unit: 1.25 },
-  ],
+  suppliesExpenses: [],
+  additionalExpenses: [],
+  cashiers: [],
+  productionConsumption: [],
+  costSales: [],
+  artisticConsumption: [],
 };
 
 const schemas = {
@@ -201,9 +177,29 @@ function bindStaticActions() {
   document.addEventListener("change", handleChange);
   document.addEventListener("click", handleClick);
 
+  document.getElementById("create-event-button").addEventListener("click", createEventFromHome);
+
   document.getElementById("reset-button").addEventListener("click", () => {
-    state = structuredClone(defaultState);
-    persistAndRender("Modelo restaurado");
+    const activeEvent = getActiveEvent();
+    if (!activeEvent) {
+      state = { activeEventId: null, events: [] };
+      persistAndRender("Eventos restaurados");
+      return;
+    }
+
+    const seeded = createEventTemplate({
+      id: activeEvent.id,
+      createdAt: activeEvent.createdAt,
+      event: {
+        ...activeEvent.event,
+      },
+      source: {
+        ...activeEvent.source,
+      },
+    });
+
+    replaceEvent(seeded);
+    persistAndRender("Evento restaurado");
   });
 
   document.getElementById("print-button").addEventListener("click", () => window.print());
@@ -211,7 +207,6 @@ function bindStaticActions() {
   document.getElementById("import-button").addEventListener("click", () => {
     document.getElementById("import-file").click();
   });
-
   document.getElementById("import-file").addEventListener("change", importSnapshot);
 }
 
@@ -240,38 +235,84 @@ function setupSectionObserver() {
 
 function loadState() {
   const saved = localStorage.getItem(STORAGE_KEY);
-  if (!saved) return structuredClone(defaultState);
+  if (!saved) return { activeEventId: null, events: [] };
 
   try {
-    return mergeState(JSON.parse(saved));
+    const parsed = JSON.parse(saved);
+
+    if (Array.isArray(parsed.events)) {
+      const events = parsed.events.map((event) => createEventTemplate(event));
+      const activeEventId = events.some((event) => event.id === parsed.activeEventId)
+        ? parsed.activeEventId
+        : events[0]?.id ?? null;
+      return { activeEventId, events };
+    }
+
+    if (parsed.event || parsed.barProducts || parsed.modulePayments) {
+      const migrated = createEventTemplate({
+        id: randomId(),
+        event: parsed.event || {},
+        source: {
+          spotpassSearchName: parsed.event?.spotpassSearchName || "",
+          spotpassEventLink: parsed.event?.spotpassEventLink || "",
+        },
+        modulePayments: parsed.modulePayments,
+        barProducts: parsed.barProducts,
+        ticketSales: parsed.ticketSales,
+        tobaccoSales: parsed.tobaccoSales,
+        operationalExpenses: parsed.operationalExpenses,
+        suppliesExpenses: parsed.suppliesExpenses,
+        additionalExpenses: parsed.additionalExpenses,
+        cashiers: parsed.cashiers,
+        productionConsumption: parsed.productionConsumption,
+        costSales: parsed.costSales,
+        artisticConsumption: parsed.artisticConsumption,
+      });
+      return { activeEventId: migrated.id, events: [migrated] };
+    }
   } catch (error) {
-    return structuredClone(defaultState);
+    return { activeEventId: null, events: [] };
   }
+
+  return { activeEventId: null, events: [] };
 }
 
-function mergeState(saved) {
+function createEventTemplate(overrides = {}) {
+  const base = structuredClone(eventBlueprint);
+  const eventOverrides = overrides.event || {};
+  const sourceOverrides = overrides.source || {};
+
   return {
-    ...structuredClone(defaultState),
-    ...saved,
-    event: { ...defaultState.event, ...(saved.event || {}) },
-    modulePayments: {
-      bar: { ...defaultState.modulePayments.bar, ...(saved.modulePayments?.bar || {}) },
-      ticket: { ...defaultState.modulePayments.ticket, ...(saved.modulePayments?.ticket || {}) },
-      tobacco: { ...defaultState.modulePayments.tobacco, ...(saved.modulePayments?.tobacco || {}) },
+    ...base,
+    ...overrides,
+    id: overrides.id || randomId(),
+    createdAt: overrides.createdAt || new Date().toISOString(),
+    updatedAt: overrides.updatedAt || new Date().toISOString(),
+    event: { ...base.event, ...eventOverrides },
+    source: {
+      ...base.source,
+      spotpassSearchName: eventOverrides.spotpassSearchName || base.source.spotpassSearchName,
+      spotpassEventLink: eventOverrides.spotpassEventLink || base.source.spotpassEventLink,
+      ...sourceOverrides,
     },
-    barProducts: normalizeCollection(saved.barProducts, defaultState.barProducts),
-    ticketSales: normalizeCollection(saved.ticketSales, defaultState.ticketSales),
-    tobaccoSales: normalizeCollection(saved.tobaccoSales, defaultState.tobaccoSales),
-    operationalExpenses: normalizeCollection(saved.operationalExpenses, defaultState.operationalExpenses),
-    suppliesExpenses: normalizeCollection(saved.suppliesExpenses, defaultState.suppliesExpenses),
-    additionalExpenses: normalizeCollection(saved.additionalExpenses, defaultState.additionalExpenses),
-    cashiers: normalizeCollection(saved.cashiers, defaultState.cashiers),
+    modulePayments: {
+      bar: { ...base.modulePayments.bar, ...(overrides.modulePayments?.bar || {}) },
+      ticket: { ...base.modulePayments.ticket, ...(overrides.modulePayments?.ticket || {}) },
+      tobacco: { ...base.modulePayments.tobacco, ...(overrides.modulePayments?.tobacco || {}) },
+    },
+    barProducts: normalizeCollection(overrides.barProducts, base.barProducts),
+    ticketSales: normalizeCollection(overrides.ticketSales, base.ticketSales),
+    tobaccoSales: normalizeCollection(overrides.tobaccoSales, base.tobaccoSales),
+    operationalExpenses: normalizeCollection(overrides.operationalExpenses, base.operationalExpenses),
+    suppliesExpenses: normalizeCollection(overrides.suppliesExpenses, base.suppliesExpenses),
+    additionalExpenses: normalizeCollection(overrides.additionalExpenses, base.additionalExpenses),
+    cashiers: normalizeCollection(overrides.cashiers, base.cashiers),
     productionConsumption: normalizeCollection(
-      saved.productionConsumption,
-      defaultState.productionConsumption,
+      overrides.productionConsumption,
+      base.productionConsumption,
     ),
-    costSales: normalizeCollection(saved.costSales, defaultState.costSales),
-    artisticConsumption: normalizeCollection(saved.artisticConsumption, defaultState.artisticConsumption),
+    costSales: normalizeCollection(overrides.costSales, base.costSales),
+    artisticConsumption: normalizeCollection(overrides.artisticConsumption, base.artisticConsumption),
   };
 }
 
@@ -292,25 +333,58 @@ function updateSaveStatus(message) {
   timeEl.textContent = formatTime(lastSavedAt);
 }
 
+function getActiveEvent() {
+  return state.events.find((event) => event.id === state.activeEventId) || null;
+}
+
+function setActiveEvent(id) {
+  state.activeEventId = id;
+}
+
+function replaceEvent(updatedEvent) {
+  state.events = state.events.map((event) => (event.id === updatedEvent.id ? updatedEvent : event));
+}
+
+function mutateActiveEvent(mutator) {
+  const activeEvent = getActiveEvent();
+  if (!activeEvent) return;
+  mutator(activeEvent);
+  activeEvent.updatedAt = new Date().toISOString();
+}
+
 function handleChange(event) {
   const target = event.target;
 
   if (target.dataset.scope === "event") {
-    state.event[target.dataset.field] = normalizeValue(target);
+    mutateActiveEvent((activeEvent) => {
+      activeEvent.event[target.dataset.field] = normalizeValue(target);
+    });
     persistAndRender("Configuração atualizada");
     return;
   }
 
+  if (target.dataset.scope === "source") {
+    mutateActiveEvent((activeEvent) => {
+      activeEvent.source[target.dataset.field] = normalizeValue(target);
+    });
+    persistAndRender("Fonte atualizada");
+    return;
+  }
+
   if (target.dataset.scope === "payment") {
-    state.modulePayments[target.dataset.module][target.dataset.field] = toNumber(target.value);
+    mutateActiveEvent((activeEvent) => {
+      activeEvent.modulePayments[target.dataset.module][target.dataset.field] = toNumber(target.value);
+    });
     persistAndRender("Pagamentos atualizados");
     return;
   }
 
   if (target.dataset.array) {
-    const row = state[target.dataset.array][Number(target.dataset.index)];
-    if (!row) return;
-    row[target.dataset.field] = normalizeValue(target);
+    mutateActiveEvent((activeEvent) => {
+      const row = activeEvent[target.dataset.array][Number(target.dataset.index)];
+      if (!row) return;
+      row[target.dataset.field] = normalizeValue(target);
+    });
     persistAndRender("Linha atualizada");
   }
 }
@@ -324,15 +398,85 @@ function handleClick(event) {
 
   const deleteButton = event.target.closest("[data-delete-array]");
   if (deleteButton) {
-    const collection = state[deleteButton.dataset.deleteArray];
-    collection.splice(Number(deleteButton.dataset.deleteIndex), 1);
+    mutateActiveEvent((activeEvent) => {
+      activeEvent[deleteButton.dataset.deleteArray].splice(Number(deleteButton.dataset.deleteIndex), 1);
+    });
     persistAndRender("Linha removida");
+    return;
+  }
+
+  const openEventButton = event.target.closest("[data-open-event-id]");
+  if (openEventButton) {
+    setActiveEvent(openEventButton.dataset.openEventId);
+    persistAndRender("Evento selecionado");
+    return;
+  }
+
+  const deleteEventButton = event.target.closest("[data-delete-event-id]");
+  if (deleteEventButton) {
+    const eventId = deleteEventButton.dataset.deleteEventId;
+    state.events = state.events.filter((entry) => entry.id !== eventId);
+    if (state.activeEventId === eventId) {
+      state.activeEventId = state.events[0]?.id || null;
+    }
+    persistAndRender("Evento removido");
+    return;
+  }
+
+  const sourceCard = event.target.closest("[data-source-type]");
+  if (sourceCard && sourceCard.dataset.sourceAction === "select") {
+    mutateActiveEvent((activeEvent) => {
+      activeEvent.source.type = sourceCard.dataset.sourceType;
+    });
+    persistAndRender("Origem principal atualizada");
   }
 }
 
 function normalizeValue(target) {
   if (target.type === "number") return toNumber(target.value);
   return target.value;
+}
+
+function createEventFromHome() {
+  const name = document.getElementById("create-event-name").value.trim();
+  const date = document.getElementById("create-event-date").value;
+  const client = document.getElementById("create-event-client").value.trim();
+  const venue = document.getElementById("create-event-venue").value.trim();
+  const spotpassSearchName = document.getElementById("create-event-search").value.trim();
+  const sourceType = document.getElementById("create-event-source").value;
+
+  if (!name) {
+    updateSaveStatus("Informe o nome do evento");
+    return;
+  }
+
+  const newEvent = createEventTemplate({
+    event: {
+      name,
+      date,
+      client,
+      venue,
+      stage: "Planejamento",
+    },
+    source: {
+      type: sourceType,
+      spotpassSearchName,
+    },
+  });
+
+  state.events.unshift(newEvent);
+  state.activeEventId = newEvent.id;
+  clearCreateEventForm();
+  persistAndRender("Evento criado");
+}
+
+function clearCreateEventForm() {
+  document.getElementById("create-event-name").value = "";
+  document.getElementById("create-event-date").value = "";
+  document.getElementById("create-event-client").value = "";
+  document.getElementById("create-event-venue").value = "";
+  document.getElementById("create-event-search").value = "";
+  document.getElementById("create-event-source").value = "spotpass";
 }
 
 function addRow(arrayName) {
@@ -342,7 +486,10 @@ function addRow(arrayName) {
     row[column.key] = column.type === "number" ? 0 : "";
   });
   if (arrayName === "cashiers") row.fixed = 120;
-  state[arrayName].push(row);
+
+  mutateActiveEvent((activeEvent) => {
+    activeEvent[arrayName].push(row);
+  });
   persistAndRender("Nova linha adicionada");
 }
 
@@ -352,32 +499,127 @@ function persistAndRender(message) {
 }
 
 function render() {
-  const metrics = computeMetrics(state);
-  renderHero(metrics);
-  renderOverview(metrics);
-  renderEventSection(metrics);
-  renderOperationSection(metrics);
-  renderCashierSection(metrics);
-  renderExpenseSection(metrics);
-  renderConsumptionSection(metrics);
-  renderReport(metrics);
+  const activeEvent = getActiveEvent();
+  const allMetrics = state.events.map((event) => ({ event, metrics: computeMetrics(event) }));
+
+  renderHome(activeEvent, allMetrics);
+  toggleWorkspace(activeEvent);
+
+  if (!activeEvent) return;
+
+  const metrics = computeMetrics(activeEvent);
+  renderHero(activeEvent, metrics);
+  renderSourceSection(activeEvent, metrics);
+  renderOverview(activeEvent, metrics);
+  renderEventSection(activeEvent);
+  renderOperationSection(activeEvent, metrics);
+  renderCashierSection(activeEvent, metrics);
+  renderExpenseSection(activeEvent, metrics);
+  renderConsumptionSection(activeEvent, metrics);
+  renderReport(activeEvent, metrics);
 }
 
-function renderHero(metrics) {
-  document.title = `${state.event.name} | Zero31`;
-  document.getElementById("hero-title").textContent = state.event.name || "Fechamento Executivo do Evento";
+function renderHome(activeEvent, allMetrics) {
+  const readyCount = allMetrics.filter((item) => item.metrics.health.score >= 75).length;
+  const criticalCount = allMetrics.filter((item) =>
+    item.metrics.alerts.some((alert) => alert.level === "critical"),
+  ).length;
+  const totalTransfer = sum(allMetrics, (item) => item.metrics.transferToBar);
+
+  document.getElementById("home-summary").innerHTML = [
+    summaryCardCount("Eventos criados", String(state.events.length), "Central de fechamentos disponíveis"),
+    summaryCardCount(
+      "Evento ativo",
+      activeEvent ? activeEvent.event.name || "Sem nome" : "Nenhum",
+      activeEvent ? "Workspace aberto" : "Selecione um evento para abrir o fechamento",
+    ),
+    summaryCardCount("Eventos prontos", String(readyCount), "Score de saúde acima de 75"),
+    summaryCardCount("Alertas críticos", String(criticalCount), "Eventos que pedem revisão"),
+    summaryCardCount("Transferência total", formatCurrency(totalTransfer), "Soma dos eventos cadastrados"),
+    summaryCardCount(
+      "Fonte mais usada",
+      getMostCommonSource(state.events),
+      "Origem principal definida nos eventos",
+    ),
+  ].join("");
+
+  document.getElementById("home-active-event-label").textContent = activeEvent
+    ? activeEvent.event.name || "Evento sem nome"
+    : "Nenhum evento ativo";
+
+  const list = document.getElementById("event-card-list");
+  if (state.events.length === 0) {
+    list.innerHTML = `
+      <article class="event-card event-card--empty">
+        <span class="metric-label">Nenhum evento criado ainda</span>
+        <p class="metric-hint">Crie o primeiro evento para abrir o workspace e escolher a origem do relatório.</p>
+      </article>
+    `;
+    return;
+  }
+
+  list.innerHTML = allMetrics
+    .map(({ event, metrics }) => {
+      const isActive = activeEvent?.id === event.id;
+      return `
+        <article class="event-card ${isActive ? "event-card--active" : ""}">
+          <div class="event-card-head">
+            <div>
+              <span class="micro-label">${formatDate(event.event.date) || "Sem data"}</span>
+              <h3>${event.event.name || "Evento sem nome"}</h3>
+            </div>
+            <span class="event-badge ${metrics.health.score >= 75 ? "event-badge--ok" : "event-badge--warning"}">
+              ${isActive ? "Ativo" : sourceLabel(event.source.type)}
+            </span>
+          </div>
+          <p class="metric-hint">${event.event.client || "Cliente não informado"} | ${event.event.venue || "Local não informado"}</p>
+          <div class="event-card-stats">
+            <div>
+              <span class="metric-label">Transferir</span>
+              <strong>${formatCurrency(metrics.transferToBar)}</strong>
+            </div>
+            <div>
+              <span class="metric-label">Saúde</span>
+              <strong>${Math.round(metrics.health.score)}/100</strong>
+            </div>
+          </div>
+          <div class="event-card-actions">
+            <button type="button" class="ghost-button" data-open-event-id="${event.id}">Abrir</button>
+            <button type="button" class="ghost-button danger-button" data-delete-event-id="${event.id}">
+              Excluir
+            </button>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function toggleWorkspace(activeEvent) {
+  document.getElementById("event-workspace").style.display = activeEvent ? "grid" : "none";
+  document.getElementById("workspace-empty").style.display = activeEvent ? "none" : "block";
+}
+
+function renderHero(activeEvent, metrics) {
+  document.title = activeEvent.event.name
+    ? `${activeEvent.event.name} | Zero31`
+    : "Zero31 | Central de Fechamento";
+
+  document.getElementById("hero-title").textContent =
+    activeEvent.event.name || "Fechamento Executivo do Evento";
   document.getElementById("hero-description").textContent =
-    "Controle o fechamento com visão operacional, leitura financeira e apresentação executiva em um único painel.";
+    "Escolha a origem dos relatórios, revise a operação e consolide o fechamento completo do evento.";
 
   const tags = [
-    `${state.event.client || "Cliente não informado"}`,
-    `${state.event.venue || "Local não informado"}`,
-    `${formatDate(state.event.date) || "Data pendente"}`,
-    `${state.event.stage || "Sem estágio"}`,
+    activeEvent.event.client || "Cliente não informado",
+    activeEvent.event.venue || "Local não informado",
+    formatDate(activeEvent.event.date) || "Data pendente",
+    activeEvent.event.stage || "Sem estágio",
+    `Fonte: ${sourceLabel(activeEvent.source.type)}`,
   ];
 
-  if (state.event.spotpassSearchName) {
-    tags.push(`SpotPass: ${state.event.spotpassSearchName}`);
+  if (activeEvent.source.spotpassSearchName) {
+    tags.push(`Busca SpotPass: ${activeEvent.source.spotpassSearchName}`);
   }
 
   document.getElementById("hero-tags").innerHTML = tags
@@ -389,13 +631,69 @@ function renderHero(metrics) {
   document.getElementById("health-bar").style.width = `${metrics.health.score}%`;
   document.getElementById("next-step-title").textContent = metrics.workflow.nextStep.title;
   document.getElementById("next-step-copy").textContent = metrics.workflow.nextStep.copy;
-  document.getElementById("hero-subtitle").textContent =
-    `${state.event.company} | Responsável: ${state.event.manager || "não informado"} | Público esperado: ${formatInteger(
-      state.event.expectedAudience,
-    )}`;
 }
 
-function renderOverview(metrics) {
+function renderSourceSection(activeEvent) {
+  document.getElementById("source-grid").innerHTML = SOURCE_OPTIONS.map((option) => {
+    const selected = activeEvent.source.type === option.id;
+    return `
+      <article class="source-card ${selected ? "source-card--active" : ""}">
+        <span class="micro-label">${selected ? "Origem principal" : "Opção"}</span>
+        <h3>${option.label}</h3>
+        <p>${option.hint}</p>
+        <button
+          type="button"
+          class="${selected ? "primary-button" : "ghost-button"}"
+          data-source-action="select"
+          data-source-type="${option.id}"
+        >
+          ${selected ? "Selecionado" : "Usar essa origem"}
+        </button>
+      </article>
+    `;
+  }).join("");
+
+  const sourceType = activeEvent.source.type;
+  const configFields = {
+    spotpass: [
+      sourceFieldTemplate("Nome do evento no SpotPass", "spotpassSearchName", activeEvent.source.spotpassSearchName, "Ex.: Okta - 17/04/2026"),
+      sourceFieldTemplate("Link direto do evento", "spotpassEventLink", activeEvent.source.spotpassEventLink, "Cole aqui o link do dashboard, se tiver"),
+      sourceFieldTemplate("Observações da origem", "reportOriginNotes", activeEvent.source.reportOriginNotes, "Ex.: buscar evento de bar e portaria separadamente"),
+    ],
+    "base-workbook": [
+      sourceFieldTemplate("Nome da planilha base", "baseWorkbookName", activeEvent.source.baseWorkbookName, "Nome do arquivo modelo"),
+      sourceFieldTemplate("Caminho da planilha base", "baseWorkbookPath", activeEvent.source.baseWorkbookPath, "Ex.: J:\\Meu Drive\\..."),
+      sourceFieldTemplate("Observações da origem", "reportOriginNotes", activeEvent.source.reportOriginNotes, "Ex.: usar essa planilha como estrutura principal"),
+    ],
+    upload: [
+      sourceFieldTemplate("Arquivo ou referência do upload", "uploadReference", activeEvent.source.uploadReference, "Ex.: relatório-vendas-okta.xlsx"),
+      sourceFieldTemplate("Origem / observações", "reportOriginNotes", activeEvent.source.reportOriginNotes, "Ex.: PDF do sistema X, print da máquina, export do POS"),
+      sourceFieldTemplate("Última importação", "lastImportedFrom", activeEvent.source.lastImportedFrom, "Opcional"),
+    ],
+    manual: [
+      sourceFieldTemplate("Observações da origem", "reportOriginNotes", activeEvent.source.reportOriginNotes, "Ex.: preencher manualmente a partir da conferência da equipe"),
+      sourceFieldTemplate("Planilha base de apoio", "baseWorkbookPath", activeEvent.source.baseWorkbookPath, "Opcional"),
+      sourceFieldTemplate("Última referência usada", "lastImportedFrom", activeEvent.source.lastImportedFrom, "Opcional"),
+    ],
+  };
+
+  document.getElementById("source-config-form").innerHTML = (configFields[sourceType] || []).join("");
+
+  const guide = SOURCE_GUIDES[sourceType];
+  document.getElementById("source-guide").innerHTML = `
+    <span class="metric-label">${guide.title}</span>
+    <ul class="insight-list">
+      ${guide.steps.map((step) => `<li>${step}</li>`).join("")}
+    </ul>
+  `;
+}
+
+function renderOverview(activeEvent, metrics) {
+  document.getElementById("hero-subtitle").textContent =
+    `${activeEvent.event.company} | Responsável: ${activeEvent.event.manager || "não informado"} | Público esperado: ${formatInteger(
+      activeEvent.event.expectedAudience,
+    )}`;
+
   document.getElementById("summary-ribbon").innerHTML = [
     summaryCard("Receita consolidada", metrics.transferBase, "Bar + produção + receitas auxiliares"),
     summaryCard("Resultado do bar", metrics.barResult, "Receita do bar menos taxa, operacional e insumos"),
@@ -454,55 +752,41 @@ function renderOverview(metrics) {
     .join("");
 }
 
-function renderEventSection(metrics) {
+function renderEventSection(activeEvent) {
   document.getElementById("event-form").innerHTML = [
-    fieldTemplate("Empresa", "event", "company", state.event.company, "text"),
-    fieldTemplate("Nome do evento", "event", "name", state.event.name, "text"),
-    fieldTemplate("Cliente", "event", "client", state.event.client, "text"),
-    fieldTemplate("Data", "event", "date", state.event.date, "date"),
-    fieldTemplate("Local / cidade", "event", "venue", state.event.venue, "text"),
-    fieldTemplate("Responsável", "event", "manager", state.event.manager, "text"),
-    fieldTemplate("Estágio", "event", "stage", state.event.stage, "text"),
+    fieldTemplate("Empresa", "event", "company", activeEvent.event.company, "text"),
+    fieldTemplate("Nome do evento", "event", "name", activeEvent.event.name, "text"),
+    fieldTemplate("Cliente", "event", "client", activeEvent.event.client, "text"),
+    fieldTemplate("Data", "event", "date", activeEvent.event.date, "date"),
+    fieldTemplate("Local / cidade", "event", "venue", activeEvent.event.venue, "text"),
+    fieldTemplate("Responsável", "event", "manager", activeEvent.event.manager, "text"),
+    fieldTemplate("Estágio", "event", "stage", activeEvent.event.stage, "text"),
     fieldTemplate(
       "Público esperado",
       "event",
       "expectedAudience",
-      state.event.expectedAudience,
+      activeEvent.event.expectedAudience,
       "number",
       "1",
     ),
   ].join("");
 
   document.getElementById("fee-form").innerHTML = [
-    fieldTemplate("Comissão de serviços", "event", "serviceRate", state.event.serviceRate, "number", "0.001"),
-    fieldTemplate("Taxa débito", "event", "debitRate", state.event.debitRate, "number", "0.001"),
-    fieldTemplate("Taxa PIX", "event", "pixRate", state.event.pixRate, "number", "0.001"),
-    fieldTemplate("Taxa crédito", "event", "creditRate", state.event.creditRate, "number", "0.001"),
+    fieldTemplate("Comissão de serviços", "event", "serviceRate", activeEvent.event.serviceRate, "number", "0.001"),
+    fieldTemplate("Taxa débito", "event", "debitRate", activeEvent.event.debitRate, "number", "0.001"),
+    fieldTemplate("Taxa PIX", "event", "pixRate", activeEvent.event.pixRate, "number", "0.001"),
+    fieldTemplate("Taxa crédito", "event", "creditRate", activeEvent.event.creditRate, "number", "0.001"),
   ].join("");
 
-  document.getElementById("spotpass-search-name").value = state.event.spotpassSearchName || "";
-  document.getElementById("spotpass-event-link").value = state.event.spotpassEventLink || "";
-  document.getElementById("event-notes").value = state.event.notes || "";
+  document.getElementById("event-notes").value = activeEvent.event.notes || "";
 }
 
-function renderOperationSection(metrics) {
+function renderOperationSection(activeEvent, metrics) {
   document.getElementById("module-strip").innerHTML = [
     moduleCard("Bar", formatCurrency(metrics.barRevenue), `Margem bruta ${formatPercent(metrics.barGrossMargin)}`),
-    moduleCard(
-      "Bilheteria",
-      formatCurrency(metrics.ticketNet),
-      `${formatInteger(metrics.ticketAudience)} ingressos lançados`,
-    ),
-    moduleCard(
-      "Tabacaria",
-      formatCurrency(metrics.tobaccoNet),
-      `${formatInteger(metrics.tobaccoUnits)} itens vendidos`,
-    ),
-    moduleCard(
-      "Receita auxiliar",
-      formatCurrency(metrics.productionRevenue),
-      "Venda a preço de custo + frentes auxiliares",
-    ),
+    moduleCard("Bilheteria", formatCurrency(metrics.ticketNet), `${formatInteger(metrics.ticketAudience)} ingressos lançados`),
+    moduleCard("Tabacaria", formatCurrency(metrics.tobaccoNet), `${formatInteger(metrics.tobaccoUnits)} itens vendidos`),
+    moduleCard("Receita auxiliar", formatCurrency(metrics.productionRevenue), "Venda a preço de custo + frentes auxiliares"),
   ].join("");
 
   document.getElementById("bar-kpis").innerHTML = [
@@ -533,7 +817,7 @@ function renderOperationSection(metrics) {
   renderCollectionTable(
     "bar-products-table",
     "barProducts",
-    state.barProducts,
+    activeEvent.barProducts,
     (row) => [
       formatCurrency(toNumber(row.cost) * toNumber(row.soldQty)),
       formatCurrency(toNumber(row.price) * toNumber(row.soldQty)),
@@ -541,93 +825,81 @@ function renderOperationSection(metrics) {
     ],
     ["Custo vendas", "Receita", "Custo produção"],
   );
-
-  renderCollectionTable("ticket-sales-table", "ticketSales", state.ticketSales, (row) => [
+  renderCollectionTable("ticket-sales-table", "ticketSales", activeEvent.ticketSales, (row) => [
+    formatCurrency(toNumber(row.qty) * toNumber(row.price)),
+  ], ["Total"]);
+  renderCollectionTable("tobacco-sales-table", "tobaccoSales", activeEvent.tobaccoSales, (row) => [
     formatCurrency(toNumber(row.qty) * toNumber(row.price)),
   ], ["Total"]);
 
-  renderCollectionTable("tobacco-sales-table", "tobaccoSales", state.tobaccoSales, (row) => [
-    formatCurrency(toNumber(row.qty) * toNumber(row.price)),
-  ], ["Total"]);
-
-  renderPaymentForm("bar-payment-form", "bar");
-  renderPaymentForm("ticket-payment-form", "ticket");
-  renderPaymentForm("tobacco-payment-form", "tobacco");
+  renderPaymentForm("bar-payment-form", "bar", activeEvent);
+  renderPaymentForm("ticket-payment-form", "ticket", activeEvent);
+  renderPaymentForm("tobacco-payment-form", "tobacco", activeEvent);
 }
 
-function renderCashierSection(metrics) {
+function renderCashierSection(activeEvent, metrics) {
   document.getElementById("cashier-kpis").innerHTML = [
-    miniCard("Venda declarada", formatCurrency(metrics.cashiersSales), `${formatInteger(state.cashiers.length)} caixas`),
+    miniCard("Venda declarada", formatCurrency(metrics.cashiersSales), `${formatInteger(activeEvent.cashiers.length)} caixas`),
     miniCard("Diferença consolidada", formatCurrency(metrics.cashiersDifference), Math.abs(metrics.cashiersDifference) <= 0.01 ? "Sem divergência relevante" : "Conferir fechamento"),
     miniCard("Total a pagar", formatCurrency(metrics.cashiersPayable), "Fixo + comissão dos operadores"),
   ].join("");
 
-  renderCashierTable(metrics.cashiersDetails);
+  renderCashierTable(activeEvent.cashiers, metrics.cashiersDetails);
 }
 
-function renderExpenseSection(metrics) {
+function renderExpenseSection(activeEvent, metrics) {
   document.getElementById("expense-kpis").innerHTML = [
     miniCard("Operacional", formatCurrency(metrics.operationalTotal), "Equipe, coordenação e sistema"),
     miniCard("Insumos totais", formatCurrency(metrics.suppliesTotal), "Insumos adicionais + custo das bebidas"),
     miniCard("Demais despesas", formatCurrency(metrics.additionalTotal), "Descontadas após o resultado do bar"),
   ].join("");
 
-  renderCollectionTable("operational-expenses-table", "operationalExpenses", state.operationalExpenses, (row) => [
+  renderCollectionTable("operational-expenses-table", "operationalExpenses", activeEvent.operationalExpenses, (row) => [
     formatCurrency(lineTotal(row)),
   ], ["Total"]);
-
-  renderCollectionTable("supplies-expenses-table", "suppliesExpenses", state.suppliesExpenses, (row) => [
+  renderCollectionTable("supplies-expenses-table", "suppliesExpenses", activeEvent.suppliesExpenses, (row) => [
     formatCurrency(lineTotal(row)),
   ], ["Total"]);
-
-  renderCollectionTable("additional-expenses-table", "additionalExpenses", state.additionalExpenses, (row) => [
+  renderCollectionTable("additional-expenses-table", "additionalExpenses", activeEvent.additionalExpenses, (row) => [
     formatCurrency(lineTotal(row)),
   ], ["Total"]);
 }
 
-function renderConsumptionSection(metrics) {
+function renderConsumptionSection(activeEvent, metrics) {
   document.getElementById("consumption-kpis").innerHTML = [
     miniCard("Consumo produção", formatCurrency(metrics.productionConsumptionTotal), "Saída operacional interna"),
     miniCard("Venda a custo", formatCurrency(metrics.productionRevenue), "Receita de produção"),
     miniCard("Consumo artístico", formatCurrency(metrics.artisticTotal), "Controle separado do evento"),
   ].join("");
 
-  renderCollectionTable(
-    "production-consumption-table",
-    "productionConsumption",
-    state.productionConsumption,
-    (row) => [formatCurrency(lineTotal(row))],
-    ["Total"],
-  );
-  renderCollectionTable("cost-sales-table", "costSales", state.costSales, (row) => [
+  renderCollectionTable("production-consumption-table", "productionConsumption", activeEvent.productionConsumption, (row) => [
     formatCurrency(lineTotal(row)),
   ], ["Total"]);
-  renderCollectionTable(
-    "artistic-consumption-table",
-    "artisticConsumption",
-    state.artisticConsumption,
-    (row) => [formatCurrency(lineTotal(row))],
-    ["Total"],
-  );
+  renderCollectionTable("cost-sales-table", "costSales", activeEvent.costSales, (row) => [
+    formatCurrency(lineTotal(row)),
+  ], ["Total"]);
+  renderCollectionTable("artistic-consumption-table", "artisticConsumption", activeEvent.artisticConsumption, (row) => [
+    formatCurrency(lineTotal(row)),
+  ], ["Total"]);
 }
 
-function renderReport(metrics) {
+function renderReport(activeEvent, metrics) {
   document.getElementById("report-transfer").textContent = formatCurrency(metrics.transferToBar);
   document.getElementById("report-margin").textContent =
     `Margem final sobre receita consolidada: ${formatPercent(metrics.transferMargin)}`;
   document.getElementById("report-headline").textContent = createReportHeadline(metrics);
-  document.getElementById("report-narrative").textContent = createReportNarrative(metrics);
+  document.getElementById("report-narrative").textContent = createReportNarrative(activeEvent, metrics);
 
   document.getElementById("report-kpis").innerHTML = [
     summaryCard("Bilheteria líquida", metrics.ticketNet, `Bruto ${formatCurrency(metrics.ticketGross)}`),
     summaryCard("Tabacaria líquida", metrics.tobaccoNet, `Bruto ${formatCurrency(metrics.tobaccoGross)}`),
-    summaryCard("Comissão de serviços", metrics.serviceCommission, `${formatPercent(state.event.serviceRate)} do resultado do bar`),
+    summaryCard("Comissão de serviços", metrics.serviceCommission, `${formatPercent(activeEvent.event.serviceRate)} do resultado do bar`),
     summaryCard("Consumo artístico", metrics.artisticTotal, "Separado do custo operacional"),
     summaryCard("A pagar aos caixas", metrics.cashiersPayable, "Fixo + comissão"),
     summaryCard("Receita produção", metrics.productionRevenue, "Venda a preço de custo"),
   ].join("");
 
-  document.getElementById("report-insights").innerHTML = generateInsights(metrics)
+  document.getElementById("report-insights").innerHTML = generateInsights(activeEvent, metrics)
     .map((item) => `<li>${item}</li>`)
     .join("");
 
@@ -646,8 +918,8 @@ function renderReport(metrics) {
   ].join("");
 }
 
-function renderPaymentForm(containerId, moduleName) {
-  const payment = state.modulePayments[moduleName];
+function renderPaymentForm(containerId, moduleName, activeEvent) {
+  const payment = activeEvent.modulePayments[moduleName];
   document.getElementById(containerId).innerHTML = [
     paymentFieldTemplate("Débito", moduleName, "debito", payment.debito),
     paymentFieldTemplate("PIX", moduleName, "pix", payment.pix),
@@ -663,48 +935,51 @@ function renderCollectionTable(containerId, arrayName, rows, readonlyBuilder, re
     "<th>Ações</th>",
   ].join("");
 
-  const body = rows
-    .map((row, index) => {
-      const inputCells = schemas[arrayName]
-        .map(
-          (column) => `
-            <td>
-              <input
-                class="cell-input"
-                data-array="${arrayName}"
-                data-index="${index}"
-                data-field="${column.key}"
-                type="${column.type}"
-                step="${column.step || "1"}"
-                value="${escapeAttribute(row[column.key] ?? "")}"
-              />
-            </td>
-          `,
-        )
-        .join("");
+  const body =
+    rows.length === 0
+      ? `<tr><td colspan="${headers.match(/<th/g).length}" class="table-empty">Nenhum lançamento ainda</td></tr>`
+      : rows
+          .map((row, index) => {
+            const inputCells = schemas[arrayName]
+              .map(
+                (column) => `
+                  <td>
+                    <input
+                      class="cell-input"
+                      data-array="${arrayName}"
+                      data-index="${index}"
+                      data-field="${column.key}"
+                      type="${column.type}"
+                      step="${column.step || "1"}"
+                      value="${escapeAttribute(row[column.key] ?? "")}"
+                    />
+                  </td>
+                `,
+              )
+              .join("");
 
-      const readonlyCells = readonlyBuilder(row)
-        .map((value) => `<td class="readonly">${value}</td>`)
-        .join("");
+            const readonlyCells = readonlyBuilder(row)
+              .map((value) => `<td class="readonly">${value}</td>`)
+              .join("");
 
-      return `
-        <tr>
-          ${inputCells}
-          ${readonlyCells}
-          <td>
-            <button
-              type="button"
-              class="table-action danger-button"
-              data-delete-array="${arrayName}"
-              data-delete-index="${index}"
-            >
-              Excluir
-            </button>
-          </td>
-        </tr>
-      `;
-    })
-    .join("");
+            return `
+              <tr>
+                ${inputCells}
+                ${readonlyCells}
+                <td>
+                  <button
+                    type="button"
+                    class="table-action danger-button"
+                    data-delete-array="${arrayName}"
+                    data-delete-index="${index}"
+                  >
+                    Excluir
+                  </button>
+                </td>
+              </tr>
+            `;
+          })
+          .join("");
 
   document.getElementById(containerId).innerHTML = `
     <div class="table-wrap">
@@ -718,7 +993,7 @@ function renderCollectionTable(containerId, arrayName, rows, readonlyBuilder, re
   `;
 }
 
-function renderCashierTable(cashiersDetails) {
+function renderCashierTable(cashiers, cashiersDetails) {
   const headers = [
     "Caixa",
     "Venda",
@@ -738,48 +1013,51 @@ function renderCashierTable(cashiersDetails) {
     "Ações",
   ];
 
-  const body = cashiersDetails
-    .map((detail, index) => {
-      const row = state.cashiers[index];
-      const inputCells = schemas.cashiers
-        .map(
-          (column) => `
-            <td>
-              <input
-                class="cell-input"
-                data-array="cashiers"
-                data-index="${index}"
-                data-field="${column.key}"
-                type="${column.type}"
-                step="${column.step || "1"}"
-                value="${escapeAttribute(row[column.key] ?? "")}"
-              />
-            </td>
-          `,
-        )
-        .join("");
+  const body =
+    cashiers.length === 0
+      ? `<tr><td colspan="${headers.length}" class="table-empty">Nenhum caixa cadastrado ainda</td></tr>`
+      : cashiersDetails
+          .map((detail, index) => {
+            const row = cashiers[index];
+            const inputCells = schemas.cashiers
+              .map(
+                (column) => `
+                  <td>
+                    <input
+                      class="cell-input"
+                      data-array="cashiers"
+                      data-index="${index}"
+                      data-field="${column.key}"
+                      type="${column.type}"
+                      step="${column.step || "1"}"
+                      value="${escapeAttribute(row[column.key] ?? "")}"
+                    />
+                  </td>
+                `,
+              )
+              .join("");
 
-      return `
-        <tr>
-          ${inputCells}
-          <td class="readonly">${formatCurrency(detail.total)}</td>
-          <td class="readonly">${formatCurrency(detail.difference)}</td>
-          <td class="readonly">${formatCurrency(detail.commission)}</td>
-          <td class="readonly">${formatCurrency(detail.payable)}</td>
-          <td>
-            <button
-              type="button"
-              class="table-action danger-button"
-              data-delete-array="cashiers"
-              data-delete-index="${index}"
-            >
-              Excluir
-            </button>
-          </td>
-        </tr>
-      `;
-    })
-    .join("");
+            return `
+              <tr>
+                ${inputCells}
+                <td class="readonly">${formatCurrency(detail.total)}</td>
+                <td class="readonly">${formatCurrency(detail.difference)}</td>
+                <td class="readonly">${formatCurrency(detail.commission)}</td>
+                <td class="readonly">${formatCurrency(detail.payable)}</td>
+                <td>
+                  <button
+                    type="button"
+                    class="table-action danger-button"
+                    data-delete-array="cashiers"
+                    data-delete-index="${index}"
+                  >
+                    Excluir
+                  </button>
+                </td>
+              </tr>
+            `;
+          })
+          .join("");
 
   document.getElementById("cashiers-table").innerHTML = `
     <div class="table-wrap">
@@ -793,33 +1071,34 @@ function renderCashierTable(cashiersDetails) {
   `;
 }
 
-function computeMetrics(currentState) {
-  const barRevenue = sum(currentState.barProducts, (item) => toNumber(item.price) * toNumber(item.soldQty));
-  const beverageSalesCost = sum(currentState.barProducts, (item) => toNumber(item.cost) * toNumber(item.soldQty));
+function computeMetrics(eventRecord) {
+  const barRevenue = sum(eventRecord.barProducts, (item) => toNumber(item.price) * toNumber(item.soldQty));
+  const beverageSalesCost = sum(eventRecord.barProducts, (item) => toNumber(item.cost) * toNumber(item.soldQty));
   const beverageProductionCost = sum(
-    currentState.barProducts,
+    eventRecord.barProducts,
     (item) => toNumber(item.cost) * toNumber(item.productionQty),
   );
-  const productionRevenue = sum(currentState.costSales, lineTotal);
-  const productionConsumptionTotal = sum(currentState.productionConsumption, lineTotal);
-  const artisticTotal = sum(currentState.artisticConsumption, lineTotal);
-  const ticketGross = sum(currentState.ticketSales, (item) => toNumber(item.qty) * toNumber(item.price));
-  const tobaccoGross = sum(currentState.tobaccoSales, (item) => toNumber(item.qty) * toNumber(item.price));
-  const barPaymentTotal = paymentTotal(currentState.modulePayments.bar);
-  const ticketPaymentTotal = paymentTotal(currentState.modulePayments.ticket);
-  const tobaccoPaymentTotal = paymentTotal(currentState.modulePayments.tobacco);
+  const productionRevenue = sum(eventRecord.costSales, lineTotal);
+  const productionConsumptionTotal = sum(eventRecord.productionConsumption, lineTotal);
+  const artisticTotal = sum(eventRecord.artisticConsumption, lineTotal);
+  const ticketGross = sum(eventRecord.ticketSales, (item) => toNumber(item.qty) * toNumber(item.price));
+  const tobaccoGross = sum(eventRecord.tobaccoSales, (item) => toNumber(item.qty) * toNumber(item.price));
 
-  const barFees = paymentFee(currentState.modulePayments.bar, currentState.event);
-  const ticketFees = paymentFee(currentState.modulePayments.ticket, currentState.event);
-  const tobaccoFees = paymentFee(currentState.modulePayments.tobacco, currentState.event);
-  const operationalTotal = sum(currentState.operationalExpenses, lineTotal);
-  const suppliesManual = sum(currentState.suppliesExpenses, lineTotal);
+  const barPaymentTotal = paymentTotal(eventRecord.modulePayments.bar);
+  const ticketPaymentTotal = paymentTotal(eventRecord.modulePayments.ticket);
+  const tobaccoPaymentTotal = paymentTotal(eventRecord.modulePayments.tobacco);
+
+  const barFees = paymentFee(eventRecord.modulePayments.bar, eventRecord.event);
+  const ticketFees = paymentFee(eventRecord.modulePayments.ticket, eventRecord.event);
+  const tobaccoFees = paymentFee(eventRecord.modulePayments.tobacco, eventRecord.event);
+  const operationalTotal = sum(eventRecord.operationalExpenses, lineTotal);
+  const suppliesManual = sum(eventRecord.suppliesExpenses, lineTotal);
   const suppliesTotal = beverageSalesCost + beverageProductionCost + suppliesManual;
-  const additionalTotal = sum(currentState.additionalExpenses, lineTotal);
+  const additionalTotal = sum(eventRecord.additionalExpenses, lineTotal);
   const totalRevenue = barRevenue + productionRevenue;
   const baseExpenses = barFees + operationalTotal + suppliesTotal;
   const barResult = totalRevenue - baseExpenses;
-  const serviceCommission = barResult * toNumber(currentState.event.serviceRate);
+  const serviceCommission = barResult * toNumber(eventRecord.event.serviceRate);
   const netOperationalBalance = barResult - serviceCommission - additionalTotal;
   const ticketNet = ticketGross - ticketFees;
   const tobaccoNet = tobaccoGross - tobaccoFees;
@@ -827,7 +1106,7 @@ function computeMetrics(currentState) {
   const transferBase = totalRevenue + ticketNet + tobaccoNet;
   const expensesGrand = baseExpenses + serviceCommission + additionalTotal;
 
-  const cashiersDetails = currentState.cashiers.map((cashier) => {
+  const cashiersDetails = eventRecord.cashiers.map((cashier) => {
     const total =
       toNumber(cashier.credito) +
       toNumber(cashier.debito) +
@@ -842,10 +1121,11 @@ function computeMetrics(currentState) {
     return { ...cashier, total, difference, commission, payable };
   });
 
-  const cashiersSales = sum(currentState.cashiers, (cashier) => toNumber(cashier.sale));
+  const cashiersSales = sum(eventRecord.cashiers, (cashier) => toNumber(cashier.sale));
   const cashiersDifference = sum(cashiersDetails, (cashier) => cashier.difference);
   const cashiersPayable = sum(cashiersDetails, (cashier) => cashier.payable);
-  const alerts = buildAlerts({
+
+  const alerts = buildAlerts(eventRecord, {
     barRevenue,
     barPaymentTotal,
     ticketGross,
@@ -856,10 +1136,8 @@ function computeMetrics(currentState) {
     barResult,
     productionRevenue,
     beverageProductionCost,
-    state: currentState,
   });
-
-  const workflow = buildWorkflow(currentState, {
+  const workflow = buildWorkflow(eventRecord, {
     barRevenue,
     ticketGross,
     tobaccoGross,
@@ -868,7 +1146,6 @@ function computeMetrics(currentState) {
     productionConsumptionTotal,
     alerts,
   });
-
   const health = buildHealth(alerts, workflow, {
     barResult,
     transferToBar,
@@ -884,8 +1161,8 @@ function computeMetrics(currentState) {
     artisticTotal,
     ticketGross,
     tobaccoGross,
-    ticketAudience: sum(currentState.ticketSales, (item) => toNumber(item.qty)),
-    tobaccoUnits: sum(currentState.tobaccoSales, (item) => toNumber(item.qty)),
+    ticketAudience: sum(eventRecord.ticketSales, (item) => toNumber(item.qty)),
+    tobaccoUnits: sum(eventRecord.tobaccoSales, (item) => toNumber(item.qty)),
     barPaymentTotal,
     ticketPaymentTotal,
     tobaccoPaymentTotal,
@@ -908,8 +1185,8 @@ function computeMetrics(currentState) {
     cashiersSales,
     cashiersDifference,
     cashiersPayable,
-    barProductCount: currentState.barProducts.length,
-    barSoldUnits: sum(currentState.barProducts, (item) => toNumber(item.soldQty)),
+    barProductCount: eventRecord.barProducts.length,
+    barSoldUnits: sum(eventRecord.barProducts, (item) => toNumber(item.soldQty)),
     barGrossMargin: barRevenue > 0 ? (barRevenue - beverageSalesCost) / barRevenue : 0,
     transferMargin: transferBase > 0 ? transferToBar / transferBase : 0,
     alerts,
@@ -918,22 +1195,30 @@ function computeMetrics(currentState) {
   };
 }
 
-function buildAlerts(data) {
+function buildAlerts(eventRecord, data) {
   const alerts = [];
 
-  if (!data.state.event.name || !data.state.event.client || !data.state.event.manager) {
+  if (!eventRecord.event.name || !eventRecord.event.client || !eventRecord.event.manager) {
     alerts.push({
       level: "attention",
       title: "Cadastro do evento incompleto",
-      body: "Preencha nome do evento, cliente e responsável para melhorar o relatório executivo.",
+      body: "Preencha nome do evento, cliente e responsável para dar mais força ao relatório executivo.",
     });
   }
 
-  if (!data.state.event.spotpassSearchName) {
+  if (!eventRecord.source.type) {
+    alerts.push({
+      level: "attention",
+      title: "Origem do relatório não definida",
+      body: "Escolha se os dados virão do SpotPass, da planilha base, de upload ou de preenchimento manual.",
+    });
+  }
+
+  if (eventRecord.source.type === "spotpass" && !eventRecord.source.spotpassSearchName) {
     alerts.push({
       level: "attention",
       title: "Busca do SpotPass não informada",
-      body: "Preencha o nome do evento no SpotPass para facilitar a localização automática na operação.",
+      body: "Preencha o nome exato do evento no SpotPass para facilitar a localização automática.",
     });
   }
 
@@ -949,7 +1234,7 @@ function buildAlerts(data) {
     alerts.push({
       level: "attention",
       title: "Bilheteria com pagamentos inconsistentes",
-      body: `O total lançado em pagamentos difere ${formatCurrency(data.ticketGross - data.ticketPaymentTotal)} da bilheteria bruta.`,
+      body: `Os pagamentos divergem ${formatCurrency(data.ticketGross - data.ticketPaymentTotal)} da bilheteria bruta.`,
     });
   }
 
@@ -957,7 +1242,7 @@ function buildAlerts(data) {
     alerts.push({
       level: "attention",
       title: "Tabacaria com diferença de pagamentos",
-      body: `O módulo apresenta diferença de ${formatCurrency(data.tobaccoGross - data.tobaccoPaymentTotal)} entre bruto e pagamentos.`,
+      body: `O módulo apresenta diferença de ${formatCurrency(data.tobaccoGross - data.tobaccoPaymentTotal)}.`,
     });
   }
 
@@ -996,55 +1281,62 @@ function buildAlerts(data) {
   return alerts;
 }
 
-function buildWorkflow(currentState, context) {
+function buildWorkflow(eventRecord, context) {
   const eventProgress = ratio([
-    Boolean(currentState.event.name),
-    Boolean(currentState.event.client),
-    Boolean(currentState.event.venue),
-    Boolean(currentState.event.manager),
-    Boolean(currentState.event.date),
-    toNumber(currentState.event.serviceRate) > 0,
+    Boolean(eventRecord.event.name),
+    Boolean(eventRecord.event.client),
+    Boolean(eventRecord.event.venue),
+    Boolean(eventRecord.event.manager),
+    Boolean(eventRecord.event.date),
+    Boolean(eventRecord.source.type),
+  ]);
+
+  const sourceProgress = ratio([
+    Boolean(eventRecord.source.type),
+    eventRecord.source.type !== "spotpass" || Boolean(eventRecord.source.spotpassSearchName),
+    eventRecord.source.type !== "base-workbook" || Boolean(eventRecord.source.baseWorkbookPath),
+    eventRecord.source.type !== "upload" || Boolean(eventRecord.source.uploadReference),
   ]);
 
   const salesProgress = ratio([
-    currentState.barProducts.length > 0,
-    context.barRevenue > 0,
-    context.ticketGross > 0,
-    context.tobaccoGross >= 0,
-    paymentTotal(currentState.modulePayments.bar) > 0,
+    eventRecord.barProducts.length > 0 || context.barRevenue > 0,
+    eventRecord.ticketSales.length > 0 || context.ticketGross > 0,
+    eventRecord.tobaccoSales.length > 0 || context.tobaccoGross >= 0,
+    paymentTotal(eventRecord.modulePayments.bar) > 0 || context.barRevenue === 0,
   ]);
 
   const cashierProgress = ratio([
-    currentState.cashiers.length > 0,
+    eventRecord.cashiers.length > 0,
     context.cashiersDetails.some((item) => toNumber(item.sale) > 0),
     Math.abs(sum(context.cashiersDetails, (item) => item.difference)) <= 50,
   ]);
 
   const costProgress = ratio([
-    context.operationalTotal > 0,
-    currentState.suppliesExpenses.length > 0,
-    currentState.additionalExpenses.length > 0,
-    currentState.productionConsumption.length > 0,
+    eventRecord.operationalExpenses.length > 0,
+    eventRecord.suppliesExpenses.length > 0 || eventRecord.barProducts.length > 0,
+    eventRecord.additionalExpenses.length > 0,
+    eventRecord.productionConsumption.length > 0 || eventRecord.costSales.length > 0,
   ]);
 
   const reportProgress = ratio([
     eventProgress >= 0.8,
-    salesProgress >= 0.8,
+    sourceProgress >= 0.75,
+    salesProgress >= 0.75,
     cashierProgress >= 0.67,
-    costProgress >= 0.75,
+    costProgress >= 0.5,
     !context.alerts.some((alert) => alert.level === "critical"),
   ]);
 
   const steps = [
-    { title: "Configurar evento", progress: eventProgress * 100 },
+    { title: "Criar evento", progress: eventProgress * 100 },
+    { title: "Definir fonte", progress: sourceProgress * 100 },
     { title: "Lançar vendas", progress: salesProgress * 100 },
     { title: "Conferir caixas", progress: cashierProgress * 100 },
     { title: "Validar custos", progress: costProgress * 100 },
     { title: "Fechar relatório", progress: reportProgress * 100 },
   ];
 
-  const nextStep =
-    steps.find((step) => step.progress < 100) || { title: "Fechamento concluído", progress: 100 };
+  const nextStep = steps.find((step) => step.progress < 100) || { title: "Fechamento concluído" };
 
   return {
     steps,
@@ -1052,9 +1344,9 @@ function buildWorkflow(currentState, context) {
     nextStep: {
       title: nextStep.title,
       copy:
-        nextStep.progress < 100
-          ? "Finalize esse bloco para aumentar a confiabilidade do relatório executivo."
-          : "Os principais blocos do fechamento já estão completos e prontos para apresentação.",
+        nextStep.title === "Fechamento concluído"
+          ? "Os principais blocos do fechamento já estão completos e prontos para apresentação."
+          : "Finalize esse bloco para aumentar a confiabilidade do fechamento e da importação dos relatórios.",
     },
   };
 }
@@ -1077,11 +1369,11 @@ function buildHealth(alerts, workflow, numbers) {
   return { score, summary };
 }
 
-function paymentFee(payment, event) {
+function paymentFee(payment, eventData) {
   return (
-    toNumber(payment.debito) * toNumber(event.debitRate) +
-    toNumber(payment.pix) * toNumber(event.pixRate) +
-    toNumber(payment.credito) * toNumber(event.creditRate)
+    toNumber(payment.debito) * toNumber(eventData.debitRate) +
+    toNumber(payment.pix) * toNumber(eventData.pixRate) +
+    toNumber(payment.credito) * toNumber(eventData.creditRate)
   );
 }
 
@@ -1096,15 +1388,15 @@ function cashierCommission(total) {
   return total * 0.02;
 }
 
-function generateInsights(metrics) {
+function generateInsights(eventRecord, metrics) {
   const bestProduct =
-    [...state.barProducts].sort(
+    [...eventRecord.barProducts].sort(
       (a, b) => toNumber(b.price) * toNumber(b.soldQty) - toNumber(a.price) * toNumber(a.soldQty),
     )[0] || null;
 
   const insights = [
-    `A margem bruta dos produtos vendidos no bar está em ${formatPercent(metrics.barGrossMargin)} antes das demais despesas operacionais.`,
-    `O evento consolida ${formatCurrency(metrics.transferBase)} em receita final considerada no relatório.`,
+    `A origem principal definida para este evento é ${sourceLabel(eventRecord.source.type)}.`,
+    `O fechamento consolida ${formatCurrency(metrics.transferBase)} em receita considerada no relatório.`,
     `A estrutura de custos totais está em ${formatCurrency(metrics.expensesGrand)}, incluindo taxas, operacional, insumos, comissão e despesas adicionais.`,
     `O total a pagar aos caixas está em ${formatCurrency(metrics.cashiersPayable)}, já considerando fixo e comissão progressiva.`,
   ];
@@ -1140,12 +1432,12 @@ function createReportHeadline(metrics) {
   return "Fechamento exige revisão antes da apresentação final";
 }
 
-function createReportNarrative(metrics) {
-  return `${state.event.name} encerra com ${formatCurrency(metrics.transferToBar)} para transferir, após consolidar ${formatCurrency(
-    metrics.barRevenue,
-  )} em vendas do bar, ${formatCurrency(metrics.ticketNet)} de bilheteria líquida e ${formatCurrency(
-    metrics.tobaccoNet,
-  )} de tabacaria líquida. O resultado do bar ficou em ${formatCurrency(
+function createReportNarrative(eventRecord, metrics) {
+  return `${eventRecord.event.name || "O evento"} encerra com ${formatCurrency(
+    metrics.transferToBar,
+  )} para transferir, após consolidar ${formatCurrency(metrics.barRevenue)} em vendas do bar, ${formatCurrency(
+    metrics.ticketNet,
+  )} de bilheteria líquida e ${formatCurrency(metrics.tobaccoNet)} de tabacaria líquida. O resultado do bar ficou em ${formatCurrency(
     metrics.barResult,
   )}, com ${formatCurrency(metrics.operationalTotal)} de operacional e ${formatCurrency(
     metrics.suppliesTotal,
@@ -1154,7 +1446,7 @@ function createReportNarrative(metrics) {
 
 function exportSnapshot() {
   const payload = {
-    version: 2,
+    version: 1,
     exportedAt: new Date().toISOString(),
     data: state,
   };
@@ -1163,7 +1455,7 @@ function exportSnapshot() {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `${slugify(state.event.name || "fechamento-zero31")}.json`;
+  anchor.download = `zero31-fechamentos-${new Date().toISOString().slice(0, 10)}.json`;
   document.body.append(anchor);
   anchor.click();
   anchor.remove();
@@ -1179,7 +1471,7 @@ function importSnapshot(event) {
   reader.onload = () => {
     try {
       const parsed = JSON.parse(String(reader.result));
-      state = mergeState(parsed.data || parsed);
+      state = loadImportedState(parsed.data || parsed);
       persistAndRender("Arquivo importado");
     } catch (error) {
       updateSaveStatus("Falha ao importar arquivo");
@@ -1188,6 +1480,43 @@ function importSnapshot(event) {
     }
   };
   reader.readAsText(file, "utf-8");
+}
+
+function loadImportedState(imported) {
+  if (Array.isArray(imported.events)) {
+    const events = imported.events.map((event) => createEventTemplate(event));
+    return {
+      activeEventId: imported.activeEventId || events[0]?.id || null,
+      events,
+    };
+  }
+  if (imported.event || imported.barProducts || imported.modulePayments) {
+    const migrated = createEventTemplate({
+      event: imported.event || {},
+      source: {
+        spotpassSearchName: imported.event?.spotpassSearchName || "",
+        spotpassEventLink: imported.event?.spotpassEventLink || "",
+      },
+      modulePayments: imported.modulePayments,
+      barProducts: imported.barProducts,
+      ticketSales: imported.ticketSales,
+      tobaccoSales: imported.tobaccoSales,
+      operationalExpenses: imported.operationalExpenses,
+      suppliesExpenses: imported.suppliesExpenses,
+      additionalExpenses: imported.additionalExpenses,
+      cashiers: imported.cashiers,
+      productionConsumption: imported.productionConsumption,
+      costSales: imported.costSales,
+      artisticConsumption: imported.artisticConsumption,
+    });
+    return { activeEventId: migrated.id, events: [migrated] };
+  }
+  return loadState();
+}
+
+function randomId() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return `evt-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
 }
 
 function renderBars(data) {
@@ -1220,6 +1549,16 @@ function summaryCard(label, value, hint, tone = "") {
     <article class="metric-card ${toneClass}">
       <span class="metric-label">${label}</span>
       <strong class="metric-value">${formatCurrency(value)}</strong>
+      <span class="metric-hint">${hint}</span>
+    </article>
+  `;
+}
+
+function summaryCardCount(label, value, hint) {
+  return `
+    <article class="metric-card">
+      <span class="metric-label">${label}</span>
+      <strong class="metric-value">${value}</strong>
       <span class="metric-hint">${hint}</span>
     </article>
   `;
@@ -1269,6 +1608,21 @@ function fieldTemplate(label, scope, field, value, type, step = "1") {
   `;
 }
 
+function sourceFieldTemplate(label, field, value, placeholder = "") {
+  return `
+    <div class="field">
+      <label>${label}</label>
+      <input
+        data-scope="source"
+        data-field="${field}"
+        type="text"
+        placeholder="${escapeAttribute(placeholder)}"
+        value="${escapeAttribute(value)}"
+      />
+    </div>
+  `;
+}
+
 function paymentFieldTemplate(label, moduleName, field, value, mode = "editable") {
   if (mode === "readonly") {
     return `
@@ -1306,6 +1660,20 @@ function sum(collection, mapper) {
   return collection.reduce((accumulator, item) => accumulator + mapper(item), 0);
 }
 
+function getMostCommonSource(events) {
+  if (events.length === 0) return "Nenhuma";
+  const counts = new Map();
+  events.forEach((event) => {
+    const key = sourceLabel(event.source.type);
+    counts.set(key, (counts.get(key) || 0) + 1);
+  });
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
+}
+
+function sourceLabel(type) {
+  return SOURCE_OPTIONS.find((option) => option.id === type)?.label || "Não definida";
+}
+
 function toNumber(value) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
@@ -1330,7 +1698,7 @@ function formatPercent(value) {
 function formatDate(value) {
   if (!value) return "";
   const date = new Date(`${value}T00:00:00`);
-  return new Intl.DateTimeFormat("pt-BR").format(date);
+  return Number.isNaN(date.getTime()) ? "" : new Intl.DateTimeFormat("pt-BR").format(date);
 }
 
 function formatTime(value) {
@@ -1341,18 +1709,7 @@ function formatTime(value) {
 }
 
 function formatInteger(value) {
-  return new Intl.NumberFormat("pt-BR", {
-    maximumFractionDigits: 0,
-  }).format(toNumber(value));
-}
-
-function slugify(value) {
-  return String(value || "fechamento-zero31")
-    .normalize("NFD")
-    .replaceAll(/[\u0300-\u036f]/g, "")
-    .replaceAll(/[^a-zA-Z0-9]+/g, "-")
-    .replaceAll(/^-+|-+$/g, "")
-    .toLowerCase();
+  return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(toNumber(value));
 }
 
 function escapeAttribute(value) {
