@@ -3,317 +3,442 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Fechamento Bar Pro</title>
+    <title>Zero31 | Fechamento de Eventos</title>
+    <meta
+      name="description"
+      content="Sistema de fechamento operacional para eventos, bares, caixas, consumo e relatório executivo."
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <div class="page-shell">
-      <header class="hero">
-        <div class="hero-copy">
-          <span class="eyebrow">Protótipo operacional</span>
-          <h1>Fechamento Bar Pro</h1>
-          <p>
-            Uma primeira versão do seu sistema para controlar evento, vendas,
-            caixas, consumo, despesas e entregar um fechamento muito mais
-            confiável e apresentável do que a planilha.
-          </p>
+      <header class="topbar">
+        <div class="brand-block">
+          <span class="brand-mark">Z31</span>
+          <div>
+            <p class="micro-label">Zero31 Produções & Serviços</p>
+            <strong class="brand-title">Central de Fechamento</strong>
+          </div>
         </div>
-        <div class="hero-actions">
-          <button type="button" class="ghost-button" id="reset-button">
-            Restaurar modelo
-          </button>
-          <button type="button" class="primary-button" id="print-button">
-            Imprimir relatório
-          </button>
+
+        <div class="topbar-status">
+          <div class="status-pill" id="save-status">Autosave ativo</div>
+          <div class="status-copy">
+            <span>Última atualização</span>
+            <strong id="save-time">agora</strong>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <button type="button" class="ghost-button" id="export-button">Exportar dados</button>
+          <button type="button" class="ghost-button" id="import-button">Importar dados</button>
+          <button type="button" class="ghost-button" id="print-button">Imprimir relatório</button>
+          <button type="button" class="primary-button" id="reset-button">Restaurar modelo</button>
+          <input type="file" id="import-file" accept="application/json" hidden />
         </div>
       </header>
 
-      <main class="layout">
-        <aside class="rail">
-          <nav>
-            <a href="#resumo">Resumo</a>
-            <a href="#evento">Evento</a>
-            <a href="#bar">Bar</a>
-            <a href="#caixas">Caixas</a>
-            <a href="#despesas">Despesas</a>
-            <a href="#consumo">Consumo</a>
-            <a href="#relatorio">Relatório</a>
-          </nav>
-        </aside>
+      <section class="hero">
+        <div class="hero-copy">
+          <span class="eyebrow">Sistema operacional de fechamento</span>
+          <h1 id="hero-title">Fechamento Executivo do Evento</h1>
+          <p id="hero-description">
+            Um ambiente único para lançar vendas, auditar caixas, controlar consumo e apresentar o
+            resultado com padrão mais profissional.
+          </p>
 
-        <div class="content">
-          <section id="resumo" class="panel">
-            <div class="panel-head">
-              <div>
-                <span class="kicker">Visão geral</span>
-                <h2>Resumo executivo do evento</h2>
-              </div>
-              <p id="hero-subtitle" class="panel-note"></p>
-            </div>
-            <div id="summary-cards" class="metric-grid"></div>
-            <div class="chart-grid">
-              <div class="chart-card">
-                <h3>Composição de receita</h3>
-                <div id="revenue-chart"></div>
-              </div>
-              <div class="chart-card">
-                <h3>Estrutura de custos</h3>
-                <div id="expense-chart"></div>
-              </div>
-            </div>
-          </section>
-
-          <section id="evento" class="panel">
-            <div class="panel-head">
-              <div>
-                <span class="kicker">Base do fechamento</span>
-                <h2>Configuração do evento</h2>
-              </div>
-              <p class="panel-note">
-                Aqui ficam os dados centrais do evento e as taxas de pagamento.
-              </p>
-            </div>
-            <div id="event-form" class="form-grid"></div>
-            <div class="split-grid">
-              <div class="subpanel">
-                <h3>Taxas do fechamento</h3>
-                <div id="fee-form" class="form-grid compact"></div>
-              </div>
-              <div class="subpanel">
-                <h3>Mapeamento da planilha para o sistema</h3>
-                <ul class="mapping-list">
-                  <li>`Fechamento_Geral` vira o painel executivo do evento.</li>
-                  <li>`DESPESAS_BEBIDAS` vira catálogo de produtos e custos.</li>
-                  <li>`BILHETERIA` e `TABACARIA` viram módulos de venda auxiliares.</li>
-                  <li>`CONTROLE_CAIXAS` vira auditoria de caixa por operador.</li>
-                  <li>`CONSUMO_PRODUÇÃO` vira consumo interno, artístico e venda a custo.</li>
-                </ul>
-              </div>
-            </div>
-          </section>
-
-          <section id="bar" class="panel">
-            <div class="panel-head">
-              <div>
-                <span class="kicker">Operação principal</span>
-                <h2>Bar, bilheteria e tabacaria</h2>
-              </div>
-              <p class="panel-note">
-                Lançamentos estruturados no lugar de blocos manuais da planilha.
-              </p>
-            </div>
-
-            <div class="subpanel">
-              <div class="subpanel-head">
-                <div>
-                  <h3>Produtos do bar</h3>
-                  <p>Preço de custo, preço de venda, venda e consumo da produção.</p>
-                </div>
-                <button type="button" class="ghost-button add-row" data-array="barProducts">
-                  Adicionar produto
-                </button>
-              </div>
-              <div id="bar-products-table"></div>
-            </div>
-
-            <div class="triple-grid">
-              <div class="subpanel">
-                <div class="subpanel-head">
-                  <div>
-                    <h3>Bilheteria</h3>
-                    <p>Ingressos e taxas por meio de pagamento.</p>
-                  </div>
-                  <button type="button" class="ghost-button add-row" data-array="ticketSales">
-                    Adicionar ingresso
-                  </button>
-                </div>
-                <div id="ticket-sales-table"></div>
-                <div id="ticket-payment-form" class="form-grid compact"></div>
-              </div>
-
-              <div class="subpanel">
-                <div class="subpanel-head">
-                  <div>
-                    <h3>Tabacaria</h3>
-                    <p>Produtos auxiliares vendidos no evento.</p>
-                  </div>
-                  <button type="button" class="ghost-button add-row" data-array="tobaccoSales">
-                    Adicionar item
-                  </button>
-                </div>
-                <div id="tobacco-sales-table"></div>
-                <div id="tobacco-payment-form" class="form-grid compact"></div>
-              </div>
-
-              <div class="subpanel">
-                <div class="subpanel-head">
-                  <div>
-                    <h3>Pagamento do bar</h3>
-                    <p>Usado para calcular taxa de cartão no fechamento principal.</p>
-                  </div>
-                </div>
-                <div id="bar-payment-form" class="form-grid compact"></div>
-                <div class="highlight-card" id="bar-module-kpis"></div>
-              </div>
-            </div>
-          </section>
-
-          <section id="caixas" class="panel">
-            <div class="panel-head">
-              <div>
-                <span class="kicker">Auditoria</span>
-                <h2>Fechamento por caixa</h2>
-              </div>
-              <p class="panel-note">
-                Replica a lógica de venda, diferença, comissão e valor a pagar.
-              </p>
-            </div>
-            <div class="subpanel">
-              <div class="subpanel-head">
-                <div>
-                  <h3>Operadores e conferência</h3>
-                  <p>Uma visão clara para reduzir divergência no pós-evento.</p>
-                </div>
-                <button type="button" class="ghost-button add-row" data-array="cashiers">
-                  Adicionar caixa
-                </button>
-              </div>
-              <div id="cashiers-table"></div>
-            </div>
-          </section>
-
-          <section id="despesas" class="panel">
-            <div class="panel-head">
-              <div>
-                <span class="kicker">Custos e despesas</span>
-                <h2>Operacional, insumos e despesas adicionais</h2>
-              </div>
-              <p class="panel-note">
-                Estruturado para eliminar fórmulas espalhadas e facilitar auditoria.
-              </p>
-            </div>
-
-            <div class="triple-grid">
-              <div class="subpanel">
-                <div class="subpanel-head">
-                  <div>
-                    <h3>Operacional</h3>
-                    <p>Equipe, sistema, coordenação e serviços.</p>
-                  </div>
-                  <button type="button" class="ghost-button add-row" data-array="operationalExpenses">
-                    Adicionar item
-                  </button>
-                </div>
-                <div id="operational-expenses-table"></div>
-              </div>
-
-              <div class="subpanel">
-                <div class="subpanel-head">
-                  <div>
-                    <h3>Insumos adicionais</h3>
-                    <p>Fretes, gelo, descartáveis e itens fora do catálogo do bar.</p>
-                  </div>
-                  <button type="button" class="ghost-button add-row" data-array="suppliesExpenses">
-                    Adicionar insumo
-                  </button>
-                </div>
-                <div id="supplies-expenses-table"></div>
-              </div>
-
-              <div class="subpanel">
-                <div class="subpanel-head">
-                  <div>
-                    <h3>Demais despesas</h3>
-                    <p>Descontadas depois do resultado do bar, como na planilha.</p>
-                  </div>
-                  <button type="button" class="ghost-button add-row" data-array="additionalExpenses">
-                    Adicionar despesa
-                  </button>
-                </div>
-                <div id="additional-expenses-table"></div>
-              </div>
-            </div>
-          </section>
-
-          <section id="consumo" class="panel">
-            <div class="panel-head">
-              <div>
-                <span class="kicker">Controle interno</span>
-                <h2>Consumo da produção, venda a custo e consumo artístico</h2>
-              </div>
-              <p class="panel-note">
-                Esse módulo substitui as áreas repetidas da aba `CONSUMO_PRODUÇÃO`.
-              </p>
-            </div>
-
-            <div class="triple-grid">
-              <div class="subpanel">
-                <div class="subpanel-head">
-                  <div>
-                    <h3>Consumo da produção</h3>
-                    <p>Saída interna que precisa ser controlada.</p>
-                  </div>
-                  <button type="button" class="ghost-button add-row" data-array="productionConsumption">
-                    Adicionar consumo
-                  </button>
-                </div>
-                <div id="production-consumption-table"></div>
-              </div>
-
-              <div class="subpanel">
-                <div class="subpanel-head">
-                  <div>
-                    <h3>Venda a preço de custo</h3>
-                    <p>Usada como `VENDA PRODUÇÃO` no fechamento.</p>
-                  </div>
-                  <button type="button" class="ghost-button add-row" data-array="costSales">
-                    Adicionar venda
-                  </button>
-                </div>
-                <div id="cost-sales-table"></div>
-              </div>
-
-              <div class="subpanel">
-                <div class="subpanel-head">
-                  <div>
-                    <h3>Consumo artístico</h3>
-                    <p>Controle separado para prestação de contas.</p>
-                  </div>
-                  <button type="button" class="ghost-button add-row" data-array="artisticConsumption">
-                    Adicionar consumo
-                  </button>
-                </div>
-                <div id="artistic-consumption-table"></div>
-              </div>
-            </div>
-          </section>
-
-          <section id="relatorio" class="panel report-panel">
-            <div class="panel-head">
-              <div>
-                <span class="kicker">Saída executiva</span>
-                <h2>Relatório final do evento</h2>
-              </div>
-              <p class="panel-note">
-                Um fechamento pronto para apresentação, não só para conferência interna.
-              </p>
-            </div>
-
-            <div id="report-kpis" class="metric-grid compact-metrics"></div>
-            <div class="report-grid">
-              <div class="subpanel">
-                <h3>Diagnóstico automático</h3>
-                <ul id="report-insights" class="insight-list"></ul>
-              </div>
-              <div class="subpanel">
-                <h3>Resumo financeiro</h3>
-                <div id="report-breakdown" class="breakdown-list"></div>
-              </div>
-            </div>
-          </section>
+          <div class="hero-tags" id="hero-tags"></div>
         </div>
+
+        <div class="hero-side">
+          <div class="hero-score-card">
+            <span class="micro-label">Saúde do fechamento</span>
+            <div class="score-line">
+              <strong id="health-score">0</strong>
+              <span>/100</span>
+            </div>
+            <p id="health-summary"></p>
+            <div class="score-bar">
+              <div class="score-bar-fill" id="health-bar"></div>
+            </div>
+          </div>
+
+          <div class="hero-score-card hero-score-card--soft">
+            <span class="micro-label">Próximo marco</span>
+            <strong id="next-step-title">Concluir configuração do evento</strong>
+            <p id="next-step-copy"></p>
+          </div>
+        </div>
+      </section>
+
+      <nav class="section-nav" id="section-nav">
+        <a href="#overview">Painel</a>
+        <a href="#evento">Evento</a>
+        <a href="#operacao">Operação</a>
+        <a href="#caixas">Caixas</a>
+        <a href="#despesas">Despesas</a>
+        <a href="#consumo">Consumo</a>
+        <a href="#relatorio">Relatório</a>
+      </nav>
+
+      <main class="content">
+        <section id="overview" class="panel panel-hero">
+          <div class="panel-head">
+            <div>
+              <span class="kicker">Painel executivo</span>
+              <h2>Visão geral do fechamento</h2>
+            </div>
+            <p class="panel-note" id="hero-subtitle"></p>
+          </div>
+
+          <div id="summary-ribbon" class="summary-ribbon"></div>
+
+          <div class="overview-grid">
+            <article class="subpanel accent-card">
+              <div class="subpanel-head">
+                <div>
+                  <span class="micro-label">Readiness operacional</span>
+                  <h3>Progresso por etapa</h3>
+                </div>
+                <strong id="overall-progress">0%</strong>
+              </div>
+              <div id="workflow-steps" class="workflow-steps"></div>
+            </article>
+
+            <article class="subpanel">
+              <div class="subpanel-head">
+                <div>
+                  <span class="micro-label">Radar de risco</span>
+                  <h3>Diagnóstico automático</h3>
+                </div>
+                <strong id="alert-count">0 alertas</strong>
+              </div>
+              <div id="alert-stack" class="alert-stack"></div>
+            </article>
+          </div>
+
+          <div class="chart-grid">
+            <article class="chart-card">
+              <div class="chart-head">
+                <div>
+                  <span class="micro-label">Composição</span>
+                  <h3>Receitas do evento</h3>
+                </div>
+                <strong id="revenue-total">R$ 0,00</strong>
+              </div>
+              <div id="revenue-chart"></div>
+            </article>
+
+            <article class="chart-card">
+              <div class="chart-head">
+                <div>
+                  <span class="micro-label">Pressão de custos</span>
+                  <h3>Despesas do fechamento</h3>
+                </div>
+                <strong id="expense-total">R$ 0,00</strong>
+              </div>
+              <div id="expense-chart"></div>
+            </article>
+          </div>
+        </section>
+
+        <section id="evento" class="panel">
+          <div class="panel-head">
+            <div>
+              <span class="kicker">Base do evento</span>
+              <h2>Configuração operacional</h2>
+            </div>
+            <p class="panel-note">
+              Centralize os dados principais do evento, da operação e das taxas para evitar ajustes
+              espalhados.
+            </p>
+          </div>
+
+          <div id="event-form" class="form-grid"></div>
+
+          <div class="dual-grid">
+            <article class="subpanel">
+              <h3>Taxas do fechamento</h3>
+              <div id="fee-form" class="form-grid compact"></div>
+            </article>
+
+            <article class="subpanel">
+              <h3>Observações executivas</h3>
+              <div class="field textarea-field">
+                <label for="event-notes">Contexto do evento</label>
+                <textarea
+                  id="event-notes"
+                  rows="7"
+                  data-scope="event"
+                  data-field="notes"
+                  placeholder="Ex.: operação com 3 frentes de venda, artista principal, observações de fechamento..."
+                ></textarea>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="operacao" class="panel">
+          <div class="panel-head">
+            <div>
+              <span class="kicker">Operação e vendas</span>
+              <h2>Bar, bilheteria e tabacaria</h2>
+            </div>
+            <p class="panel-note">
+              Lançamentos por módulo, com resumos financeiros claros e menor chance de erro manual.
+            </p>
+          </div>
+
+          <div id="module-strip" class="module-strip"></div>
+
+          <article class="subpanel">
+            <div class="subpanel-head">
+              <div>
+                <h3>Catálogo operacional do bar</h3>
+                <p>Custo, preço, quantidade vendida e saída para produção em uma mesma grade.</p>
+              </div>
+              <button type="button" class="ghost-button add-row" data-array="barProducts">
+                Adicionar produto
+              </button>
+            </div>
+            <div class="mini-metrics" id="bar-kpis"></div>
+            <div id="bar-products-table"></div>
+          </article>
+
+          <div class="triple-grid">
+            <article class="subpanel">
+              <div class="subpanel-head">
+                <div>
+                  <h3>Bilheteria</h3>
+                  <p>Portaria com total bruto, total líquido e distribuição por pagamento.</p>
+                </div>
+                <button type="button" class="ghost-button add-row" data-array="ticketSales">
+                  Adicionar ingresso
+                </button>
+              </div>
+              <div class="mini-metrics" id="ticket-kpis"></div>
+              <div id="ticket-sales-table"></div>
+              <div id="ticket-payment-form" class="form-grid compact"></div>
+            </article>
+
+            <article class="subpanel">
+              <div class="subpanel-head">
+                <div>
+                  <h3>Tabacaria</h3>
+                  <p>Itens auxiliares vendidos no evento com controle líquido já embutido.</p>
+                </div>
+                <button type="button" class="ghost-button add-row" data-array="tobaccoSales">
+                  Adicionar item
+                </button>
+              </div>
+              <div class="mini-metrics" id="tobacco-kpis"></div>
+              <div id="tobacco-sales-table"></div>
+              <div id="tobacco-payment-form" class="form-grid compact"></div>
+            </article>
+
+            <article class="subpanel">
+              <div class="subpanel-head">
+                <div>
+                  <h3>Pagamento do bar</h3>
+                  <p>Base usada para apurar a taxa financeira do fechamento principal.</p>
+                </div>
+              </div>
+              <div id="bar-payment-form" class="form-grid compact"></div>
+              <div class="highlight-card" id="bar-module-kpis"></div>
+            </article>
+          </div>
+        </section>
+
+        <section id="caixas" class="panel">
+          <div class="panel-head">
+            <div>
+              <span class="kicker">Conferência financeira</span>
+              <h2>Fechamento por caixa</h2>
+            </div>
+            <p class="panel-note">
+              Operadores, vendas, divergência, comissão e valor a pagar em uma estrutura auditável.
+            </p>
+          </div>
+
+          <div class="mini-metrics" id="cashier-kpis"></div>
+
+          <article class="subpanel">
+            <div class="subpanel-head">
+              <div>
+                <h3>Conferência individual</h3>
+                <p>Quando houver diferença, o sistema já aponta o impacto consolidado.</p>
+              </div>
+              <button type="button" class="ghost-button add-row" data-array="cashiers">
+                Adicionar caixa
+              </button>
+            </div>
+            <div id="cashiers-table"></div>
+          </article>
+        </section>
+
+        <section id="despesas" class="panel">
+          <div class="panel-head">
+            <div>
+              <span class="kicker">Custos e despesas</span>
+              <h2>Operacional, insumos e complementos</h2>
+            </div>
+            <p class="panel-note">
+              Blocos organizados para facilitar auditoria e leitura executiva do resultado.
+            </p>
+          </div>
+
+          <div class="mini-metrics" id="expense-kpis"></div>
+
+          <div class="triple-grid">
+            <article class="subpanel">
+              <div class="subpanel-head">
+                <div>
+                  <h3>Operacional</h3>
+                  <p>Equipe, coordenação, sistema e estrutura fixa do evento.</p>
+                </div>
+                <button type="button" class="ghost-button add-row" data-array="operationalExpenses">
+                  Adicionar item
+                </button>
+              </div>
+              <div id="operational-expenses-table"></div>
+            </article>
+
+            <article class="subpanel">
+              <div class="subpanel-head">
+                <div>
+                  <h3>Insumos adicionais</h3>
+                  <p>Gelo, descartáveis, frete e itens fora do catálogo principal do bar.</p>
+                </div>
+                <button type="button" class="ghost-button add-row" data-array="suppliesExpenses">
+                  Adicionar insumo
+                </button>
+              </div>
+              <div id="supplies-expenses-table"></div>
+            </article>
+
+            <article class="subpanel">
+              <div class="subpanel-head">
+                <div>
+                  <h3>Demais despesas</h3>
+                  <p>Descontos posteriores ao resultado do bar, como reembolsos e acertos extras.</p>
+                </div>
+                <button type="button" class="ghost-button add-row" data-array="additionalExpenses">
+                  Adicionar despesa
+                </button>
+              </div>
+              <div id="additional-expenses-table"></div>
+            </article>
+          </div>
+        </section>
+
+        <section id="consumo" class="panel">
+          <div class="panel-head">
+            <div>
+              <span class="kicker">Controle interno</span>
+              <h2>Consumo da produção, venda a custo e consumo artístico</h2>
+            </div>
+            <p class="panel-note">
+              Separação clara entre saída operacional, venda interna e consumo artístico.
+            </p>
+          </div>
+
+          <div class="mini-metrics" id="consumption-kpis"></div>
+
+          <div class="triple-grid">
+            <article class="subpanel">
+              <div class="subpanel-head">
+                <div>
+                  <h3>Consumo da produção</h3>
+                  <p>Saídas internas que não devem se perder no fechamento.</p>
+                </div>
+                <button
+                  type="button"
+                  class="ghost-button add-row"
+                  data-array="productionConsumption"
+                >
+                  Adicionar consumo
+                </button>
+              </div>
+              <div id="production-consumption-table"></div>
+            </article>
+
+            <article class="subpanel">
+              <div class="subpanel-head">
+                <div>
+                  <h3>Venda a preço de custo</h3>
+                  <p>Usada para compor a receita de produção dentro do fechamento principal.</p>
+                </div>
+                <button type="button" class="ghost-button add-row" data-array="costSales">
+                  Adicionar venda
+                </button>
+              </div>
+              <div id="cost-sales-table"></div>
+            </article>
+
+            <article class="subpanel">
+              <div class="subpanel-head">
+                <div>
+                  <h3>Consumo artístico</h3>
+                  <p>Controle separado para prestação de contas e transparência do evento.</p>
+                </div>
+                <button
+                  type="button"
+                  class="ghost-button add-row"
+                  data-array="artisticConsumption"
+                >
+                  Adicionar consumo
+                </button>
+              </div>
+              <div id="artistic-consumption-table"></div>
+            </article>
+          </div>
+        </section>
+
+        <section id="relatorio" class="panel report-panel">
+          <div class="panel-head">
+            <div>
+              <span class="kicker">Saída executiva</span>
+              <h2>Relatório final do evento</h2>
+            </div>
+            <p class="panel-note">
+              Resultado pronto para apresentação, com números-chave, narrativa executiva e visão de
+              transferência.
+            </p>
+          </div>
+
+          <div class="report-hero">
+            <div>
+              <span class="micro-label">Resumo narrativo</span>
+              <h3 id="report-headline">Fechamento consolidado</h3>
+              <p id="report-narrative" class="report-copy"></p>
+            </div>
+            <div class="report-transfer">
+              <span class="micro-label">Valor a transferir</span>
+              <strong id="report-transfer">R$ 0,00</strong>
+              <span id="report-margin"></span>
+            </div>
+          </div>
+
+          <div id="report-kpis" class="summary-ribbon compact"></div>
+
+          <div class="report-grid">
+            <article class="subpanel">
+              <h3>Diagnóstico executivo</h3>
+              <ul id="report-insights" class="insight-list"></ul>
+            </article>
+
+            <article class="subpanel">
+              <h3>Resumo financeiro</h3>
+              <div id="report-breakdown" class="breakdown-list"></div>
+            </article>
+          </div>
+        </section>
       </main>
     </div>
 
