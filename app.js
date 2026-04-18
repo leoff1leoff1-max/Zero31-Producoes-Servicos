@@ -17,6 +17,7 @@ const SOURCE_GUIDES = {
     steps: [
       "Você me informa o nome exato do evento como ele aparece na busca do SpotPass.",
       "Se houver link direto, eu uso isso para acelerar a localização do dashboard certo.",
+      "O relatório de produtos também precisa ser informado para eu preencher corretamente bar, categorias e quantidades.",
       "Depois mapeio os relatórios e uso esses dados para preencher o fechamento base.",
     ],
   },
@@ -24,6 +25,7 @@ const SOURCE_GUIDES = {
     title: "Usar a planilha base",
     steps: [
       "A planilha modelo vira a estrutura-mãe do evento.",
+      "O relatório de produtos entra como apoio para completar vendas, preços e volumes por item.",
       "Eu comparo o relatório externo com esse modelo e preencho os blocos corretos.",
       "Essa opção é ideal quando o evento já nasce dentro do padrão do fechamento atual.",
     ],
@@ -32,6 +34,7 @@ const SOURCE_GUIDES = {
     title: "Importar arquivos",
     steps: [
       "Você envia o relatório em Excel, CSV, PDF, print ou outro formato disponível.",
+      "O relatório de produtos deve ser carregado aqui ou referenciado separadamente no evento.",
       "Eu extraio os dados relevantes e organizo por vendas, caixas, despesas e consumo.",
       "Depois traduzo isso para o fechamento consolidado do evento.",
     ],
@@ -40,6 +43,7 @@ const SOURCE_GUIDES = {
     title: "Lançamento manual",
     steps: [
       "Usamos o workspace para digitar ou revisar os números manualmente.",
+      "Mesmo no manual, o relatório de produtos continua sendo a melhor base para preencher bar e consumo.",
       "É a opção mais útil quando os dados vêm quebrados, incompletos ou em várias fontes.",
       "O sistema continua calculando o fechamento e validando inconsistências automaticamente.",
     ],
@@ -68,6 +72,8 @@ const eventBlueprint = {
     spotpassEventLink: "",
     baseWorkbookName: "BAR OKTA MODELO.xlsx",
     baseWorkbookPath: "J:\\Meu Drive\\BAR\\CLIENTES\\BOATE OKTA\\BAR OKTA MODELO.xlsx",
+    productReportReference: "",
+    productReportOrigin: "",
     uploadReference: "",
     reportOriginNotes: "",
     lastImportedFrom: "",
@@ -621,6 +627,9 @@ function renderHero(activeEvent, metrics) {
   if (activeEvent.source.spotpassSearchName) {
     tags.push(`Busca SpotPass: ${activeEvent.source.spotpassSearchName}`);
   }
+  if (activeEvent.source.productReportReference) {
+    tags.push("Relatório de produtos informado");
+  }
 
   document.getElementById("hero-tags").innerHTML = tags
     .map((tag) => `<span class="hero-tag">${tag}</span>`)
@@ -654,23 +663,41 @@ function renderSourceSection(activeEvent) {
   }).join("");
 
   const sourceType = activeEvent.source.type;
+  const productReportFields = [
+    sourceFieldTemplate(
+      "Relatório de produtos",
+      "productReportReference",
+      activeEvent.source.productReportReference,
+      "Ex.: export-produtos-okta.xlsx ou nome do relatório no sistema",
+    ),
+    sourceFieldTemplate(
+      "Origem do relatório de produtos",
+      "productReportOrigin",
+      activeEvent.source.productReportOrigin,
+      "Ex.: SpotPass > Relatórios, export do PDV, planilha do fornecedor",
+    ),
+  ];
   const configFields = {
     spotpass: [
+      ...productReportFields,
       sourceFieldTemplate("Nome do evento no SpotPass", "spotpassSearchName", activeEvent.source.spotpassSearchName, "Ex.: Okta - 17/04/2026"),
       sourceFieldTemplate("Link direto do evento", "spotpassEventLink", activeEvent.source.spotpassEventLink, "Cole aqui o link do dashboard, se tiver"),
       sourceFieldTemplate("Observações da origem", "reportOriginNotes", activeEvent.source.reportOriginNotes, "Ex.: buscar evento de bar e portaria separadamente"),
     ],
     "base-workbook": [
+      ...productReportFields,
       sourceFieldTemplate("Nome da planilha base", "baseWorkbookName", activeEvent.source.baseWorkbookName, "Nome do arquivo modelo"),
       sourceFieldTemplate("Caminho da planilha base", "baseWorkbookPath", activeEvent.source.baseWorkbookPath, "Ex.: J:\\Meu Drive\\..."),
       sourceFieldTemplate("Observações da origem", "reportOriginNotes", activeEvent.source.reportOriginNotes, "Ex.: usar essa planilha como estrutura principal"),
     ],
     upload: [
+      ...productReportFields,
       sourceFieldTemplate("Arquivo ou referência do upload", "uploadReference", activeEvent.source.uploadReference, "Ex.: relatório-vendas-okta.xlsx"),
       sourceFieldTemplate("Origem / observações", "reportOriginNotes", activeEvent.source.reportOriginNotes, "Ex.: PDF do sistema X, print da máquina, export do POS"),
       sourceFieldTemplate("Última importação", "lastImportedFrom", activeEvent.source.lastImportedFrom, "Opcional"),
     ],
     manual: [
+      ...productReportFields,
       sourceFieldTemplate("Observações da origem", "reportOriginNotes", activeEvent.source.reportOriginNotes, "Ex.: preencher manualmente a partir da conferência da equipe"),
       sourceFieldTemplate("Planilha base de apoio", "baseWorkbookPath", activeEvent.source.baseWorkbookPath, "Opcional"),
       sourceFieldTemplate("Última referência usada", "lastImportedFrom", activeEvent.source.lastImportedFrom, "Opcional"),
@@ -1211,6 +1238,14 @@ function buildAlerts(eventRecord, data) {
       level: "attention",
       title: "Origem do relatório não definida",
       body: "Escolha se os dados virão do SpotPass, da planilha base, de upload ou de preenchimento manual.",
+    });
+  }
+
+  if (!eventRecord.source.productReportReference) {
+    alerts.push({
+      level: "attention",
+      title: "Relatório de produtos não carregado",
+      body: "Informe o relatório de produtos do evento para eu conseguir preencher corretamente itens, categorias e vendas do bar.",
     });
   }
 
