@@ -224,6 +224,15 @@ body::before {
   transform: translateY(-1px);
 }
 
+.primary-button:disabled,
+.ghost-button:disabled,
+.table-action:disabled {
+  opacity: 0.56;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 .primary-button:hover {
   box-shadow: 0 20px 34px rgba(235, 122, 77, 0.3);
 }
@@ -824,6 +833,24 @@ body::before {
   margin-top: 10px;
 }
 
+.source-sync-bar {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.source-sync-status {
+  flex: 1;
+  display: grid;
+  gap: 8px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(248, 251, 255, 0.96), rgba(242, 247, 255, 0.92));
+}
+
 .workflow-steps,
 .alert-stack,
 .bars,
@@ -1157,6 +1184,10 @@ tbody tr:hover {
   .event-card-head,
   .event-card-stats,
   .event-card-actions {
+    flex-direction: column;
+  }
+
+  .source-sync-bar {
     flex-direction: column;
   }
 

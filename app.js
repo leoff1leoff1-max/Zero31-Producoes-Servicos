@@ -85,6 +85,9 @@ const eventBlueprint = {
     uploadReference: "",
     reportOriginNotes: "",
     lastImportedFrom: "",
+    syncStatus: "idle",
+    syncMessage: "",
+    syncAt: "",
   },
   modulePayments: {
     bar: { debito: 0, pix: 0, credito: 0 },
@@ -301,8 +304,7 @@ function createEventTemplate(overrides = {}) {
   const base = structuredClone(eventBlueprint);
   const eventOverrides = overrides.event || {};
   const sourceOverrides = overrides.source || {};
-
-  return {
+  const eventTemplate = {
     ...base,
     ...overrides,
     id: overrides.id || randomId(),
@@ -338,10 +340,126 @@ function createEventTemplate(overrides = {}) {
     costSales: normalizeCollection(overrides.costSales, base.costSales),
     artisticConsumption: normalizeCollection(overrides.artisticConsumption, base.artisticConsumption),
   };
+
+  refreshSourceSyncState(eventTemplate);
+  return eventTemplate;
 }
 
 function normalizeCollection(candidate, fallback) {
   return Array.isArray(candidate) ? candidate : structuredClone(fallback);
+}
+
+function sourceUsesIntegration(eventRecord) {
+  return Boolean(eventRecord?.source?.type) && eventRecord.source.type !== "manual";
+}
+
+function missingSourceRequirements(eventRecord) {
+  const source = eventRecord?.source || {};
+  const missing = [];
+
+  if (!source.type) missing.push("origem principal");
+  if (source.type === "spotpass" && !source.spotpassSearchName && !source.spotpassEventLink) {
+    missing.push("nome ou link do evento no SpotPass");
+  }
+  if (source.type === "base-workbook" && !source.baseWorkbookPath && !source.baseWorkbookName) {
+    missing.push("planilha base");
+  }
+  if (source.type === "upload" && !source.uploadReference) {
+    missing.push("arquivo de upload");
+  }
+
+  if (sourceUsesIntegration(eventRecord) && !source.productReportReference) {
+    missing.push("relatorio de produtos");
+  }
+  if (sourceUsesIntegration(eventRecord) && !source.cashierSalesReportReference) {
+    missing.push("relatorio de venda por caixa");
+  }
+
+  return missing;
+}
+
+function sourceReadyForImport(eventRecord) {
+  if (!eventRecord?.source?.type) return false;
+  if (!sourceUsesIntegration(eventRecord)) return false;
+  return missingSourceRequirements(eventRecord).length === 0;
+}
+
+function hasImportedOperationalData(eventRecord) {
+  return (
+    eventRecord.barProducts.length > 0 ||
+    eventRecord.ticketSales.length > 0 ||
+    eventRecord.tobaccoSales.length > 0 ||
+    eventRecord.cashiers.length > 0 ||
+    paymentTotal(eventRecord.modulePayments.bar) > 0 ||
+    paymentTotal(eventRecord.modulePayments.ticket) > 0 ||
+    paymentTotal(eventRecord.modulePayments.tobacco) > 0
+  );
+}
+
+function refreshSourceSyncState(eventRecord) {
+  const source = eventRecord.source;
+  const missing = missingSourceRequirements(eventRecord);
+
+  if (!source.type) {
+    source.syncStatus = "idle";
+    source.syncMessage = "Defina primeiro de onde os dados serao puxados.";
+    source.syncAt = "";
+    return;
+  }
+
+  if (!sourceUsesIntegration(eventRecord)) {
+    source.syncStatus = "manual";
+    source.syncMessage = "Modo manual ativo. Esse evento nao depende da importacao automatica.";
+    source.syncAt = "";
+    return;
+  }
+
+  if (missing.length > 0) {
+    source.syncStatus = "blocked";
+    source.syncMessage = `Faltam ${missing.join(", ")} para liberar a importacao.`;
+    source.syncAt = "";
+    return;
+  }
+
+  if (hasImportedOperationalData(eventRecord)) {
+    source.syncStatus = "synced";
+    source.syncMessage = "Os dados do evento ja estao carregados no fechamento.";
+    if (!source.syncAt) source.syncAt = new Date().toISOString();
+    return;
+  }
+
+  source.syncStatus = "ready";
+  source.syncMessage = 'Fontes configuradas. Agora voce pode clicar em "Puxar dados do evento".';
+  source.syncAt = "";
+}
+
+function requestSourceSync() {
+  mutateActiveEvent((activeEvent) => {
+    refreshSourceSyncState(activeEvent);
+
+    if (activeEvent.source.syncStatus === "ready") {
+      activeEvent.source.syncStatus = "requested";
+      activeEvent.source.syncAt = new Date().toISOString();
+      activeEvent.source.syncMessage =
+        "Importacao solicitada. Assim que a integracao estiver conectada, este evento deve preencher produtos, vendas e caixas a partir da fonte configurada.";
+      activeEvent.source.lastImportedFrom = `Solicitado em ${new Intl.DateTimeFormat("pt-BR", {
+        dateStyle: "short",
+        timeStyle: "short",
+      }).format(new Date(activeEvent.source.syncAt))}`;
+    }
+  });
+
+  const activeEvent = getActiveEvent();
+  if (!activeEvent) return;
+
+  const statusMessage =
+    activeEvent.source.syncStatus === "requested"
+      ? "Importacao solicitada"
+      : activeEvent.source.syncStatus === "manual"
+        ? "Evento em modo manual"
+        : "Complete a configuracao da fonte";
+
+  persistAndRender(statusMessage);
 }
 
 function saveState(message = "Alterações salvas") {
@@ -390,6 +508,7 @@ function handleChange(event) {
   if (target.dataset.scope === "source") {
     mutateActiveEvent((activeEvent) => {
       activeEvent.source[target.dataset.field] = normalizeValue(target);
+      refreshSourceSyncState(activeEvent);
     });
     persistAndRender("Fonte atualizada");
     return;
@@ -451,8 +570,15 @@ function handleClick(event) {
   if (sourceCard && sourceCard.dataset.sourceAction === "select") {
     mutateActiveEvent((activeEvent) => {
       activeEvent.source.type = sourceCard.dataset.sourceType;
+      refreshSourceSyncState(activeEvent);
     });
     persistAndRender("Origem principal atualizada");
+    return;
+  }
+
+  const sourceSyncButton = event.target.closest("[data-source-sync]");
+  if (sourceSyncButton) {
+    requestSourceSync();
   }
 }
 
@@ -653,6 +779,13 @@ function renderHero(activeEvent, metrics) {
     tags.push("RelatÃ³rio de venda por caixa informado");
   }
 
+  if (activeEvent.source.syncStatus === "ready") {
+    tags.push("Pronto para puxar dados");
+  }
+  if (activeEvent.source.syncStatus === "requested") {
+    tags.push("Importacao solicitada");
+  }
+
   document.getElementById("hero-tags").innerHTML = tags
     .map((tag) => `<span class="hero-tag">${tag}</span>`)
     .join("");
@@ -745,6 +878,15 @@ function renderSourceSection(activeEvent) {
   };
 
   document.getElementById("source-config-form").innerHTML = (configFields[sourceType] || []).join("");
+  const sourceSyncButton = document.getElementById("source-sync-button");
+  sourceSyncButton.disabled = activeEvent.source.syncStatus === "manual";
+  sourceSyncButton.textContent =
+    activeEvent.source.syncStatus === "requested" ? "Importacao solicitada" : "Puxar dados do evento";
+  document.getElementById("source-sync-status").innerHTML = `
+    <span class="metric-label">Status da importacao</span>
+    <strong>${sourceSyncLabel(activeEvent.source.syncStatus)}</strong>
+    <span class="metric-hint">${escapeHtml(activeEvent.source.syncMessage || "Configure a fonte e clique para puxar os dados do evento.")}</span>
+  `;
 
   const guide = SOURCE_GUIDES[sourceType];
   document.getElementById("source-guide").innerHTML = `
@@ -1288,6 +1430,8 @@ function computeMetrics(eventRecord) {
 
 function buildAlerts(eventRecord, data) {
   const alerts = [];
+  const sourceReady = sourceReadyForImport(eventRecord);
+  const importedData = hasImportedOperationalData(eventRecord);
 
   if (!eventRecord.event.name || !eventRecord.event.client || !eventRecord.event.manager) {
     alerts.push({
@@ -1305,7 +1449,7 @@ function buildAlerts(eventRecord, data) {
     });
   }
 
-  if (!eventRecord.source.productReportReference) {
+  if (sourceUsesIntegration(eventRecord) && !eventRecord.source.productReportReference) {
     alerts.push({
       level: "attention",
       title: "Relatório de produtos não carregado",
@@ -1313,7 +1457,7 @@ function buildAlerts(eventRecord, data) {
     });
   }
 
-  if (!eventRecord.source.cashierSalesReportReference) {
+  if (sourceUsesIntegration(eventRecord) && !eventRecord.source.cashierSalesReportReference) {
     alerts.push({
       level: "attention",
       title: "Relatorio de venda por caixa nao carregado",
@@ -1321,11 +1465,31 @@ function buildAlerts(eventRecord, data) {
     });
   }
 
-  if (eventRecord.source.type === "spotpass" && !eventRecord.source.spotpassSearchName) {
+  if (
+    eventRecord.source.type === "spotpass" &&
+    !eventRecord.source.spotpassSearchName &&
+    !eventRecord.source.spotpassEventLink
+  ) {
     alerts.push({
       level: "attention",
       title: "Busca do SpotPass não informada",
       body: "Preencha o nome exato do evento no SpotPass para facilitar a localização automática.",
+    });
+  }
+
+  if (sourceReady && !importedData && eventRecord.source.syncStatus !== "requested") {
+    alerts.push({
+      level: "ok",
+      title: "Evento pronto para puxar dados",
+      body: 'As fontes ja estao configuradas. Agora o proximo passo e usar o botao "Puxar dados do evento".',
+    });
+  }
+
+  if (eventRecord.source.syncStatus === "requested" && !importedData) {
+    alerts.push({
+      level: "attention",
+      title: "Importacao aguardando execucao",
+      body: "A solicitacao de importacao foi registrada. Quando a integracao estiver conectada, produtos, vendas e caixas devem entrar a partir da fonte configurada.",
     });
   }
 
@@ -1389,6 +1553,8 @@ function buildAlerts(eventRecord, data) {
 }
 
 function buildWorkflow(eventRecord, context) {
+  const sourceReady = sourceReadyForImport(eventRecord);
+
   const eventProgress = ratio([
     Boolean(eventRecord.event.name),
     Boolean(eventRecord.event.client),
@@ -1402,22 +1568,25 @@ function buildWorkflow(eventRecord, context) {
     Boolean(eventRecord.source.type),
     Boolean(eventRecord.source.productReportReference),
     Boolean(eventRecord.source.cashierSalesReportReference),
-    eventRecord.source.type !== "spotpass" || Boolean(eventRecord.source.spotpassSearchName),
+    eventRecord.source.type !== "spotpass" ||
+      Boolean(eventRecord.source.spotpassSearchName) ||
+      Boolean(eventRecord.source.spotpassEventLink),
     eventRecord.source.type !== "base-workbook" || Boolean(eventRecord.source.baseWorkbookPath),
     eventRecord.source.type !== "upload" || Boolean(eventRecord.source.uploadReference),
+    !sourceUsesIntegration(eventRecord) || sourceReady,
   ]);
 
   const salesProgress = ratio([
-    eventRecord.barProducts.length > 0 || context.barRevenue > 0,
-    eventRecord.ticketSales.length > 0 || context.ticketGross > 0,
-    eventRecord.tobaccoSales.length > 0 || context.tobaccoGross >= 0,
+    eventRecord.barProducts.length > 0 || context.barRevenue > 0 || sourceReady,
+    eventRecord.ticketSales.length > 0 || context.ticketGross > 0 || sourceReady,
+    eventRecord.tobaccoSales.length > 0 || context.tobaccoGross >= 0 || sourceReady,
     paymentTotal(eventRecord.modulePayments.bar) > 0 || context.barRevenue === 0,
   ]);
 
   const cashierProgress = ratio([
-    eventRecord.cashiers.length > 0,
-    context.cashiersDetails.some((item) => toNumber(item.sale) > 0),
-    Math.abs(sum(context.cashiersDetails, (item) => item.difference)) <= 50,
+    eventRecord.cashiers.length > 0 || sourceReady,
+    context.cashiersDetails.some((item) => toNumber(item.sale) > 0) || sourceReady,
+    Math.abs(sum(context.cashiersDetails, (item) => item.difference)) <= 50 || sourceReady,
   ]);
 
   const costProgress = ratio([
@@ -1822,6 +1991,19 @@ function getMostCommonSource(events) {
 
 function sourceLabel(type) {
   return SOURCE_OPTIONS.find((option) => option.id === type)?.label || "Não definida";
+}
+
+function sourceSyncLabel(status) {
+  const labels = {
+    idle: "Aguardando configuracao",
+    blocked: "Configuracao incompleta",
+    ready: "Pronto para importar",
+    requested: "Importacao solicitada",
+    synced: "Dados carregados",
+    manual: "Modo manual",
+  };
+
+  return labels[status] || "Em andamento";
 }
 
 function toNumber(value) {
