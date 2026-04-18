@@ -169,12 +169,36 @@
             </article>
 
             <article class="subpanel">
-              <h3>Observações executivas</h3>
+              <h3>Integração SpotPass</h3>
+              <div class="form-grid compact integration-grid">
+                <div class="field">
+                  <label for="spotpass-search-name">Nome do evento no SpotPass</label>
+                  <input
+                    id="spotpass-search-name"
+                    data-scope="event"
+                    data-field="spotpassSearchName"
+                    type="text"
+                    placeholder="Ex.: Okta - 17/04/2026"
+                  />
+                </div>
+
+                <div class="field">
+                  <label for="spotpass-event-link">Link do evento no SpotPass</label>
+                  <input
+                    id="spotpass-event-link"
+                    data-scope="event"
+                    data-field="spotpassEventLink"
+                    type="text"
+                    placeholder="Cole aqui o link direto, se tiver"
+                  />
+                </div>
+              </div>
+
               <div class="field textarea-field">
                 <label for="event-notes">Contexto do evento</label>
                 <textarea
                   id="event-notes"
-                  rows="7"
+                  rows="6"
                   data-scope="event"
                   data-field="notes"
                   placeholder="Ex.: operação com 3 frentes de venda, artista principal, observações de fechamento..."

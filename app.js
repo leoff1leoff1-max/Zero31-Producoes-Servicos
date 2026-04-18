@@ -10,6 +10,8 @@ const defaultState = {
     stage: "Pós-evento",
     manager: "Equipe Financeira",
     expectedAudience: 1200,
+    spotpassSearchName: "Okta - 17/04/2026",
+    spotpassEventLink: "",
     serviceRate: 0.08,
     debitRate: 0.023,
     pixRate: 0.023,
@@ -374,6 +376,10 @@ function renderHero(metrics) {
     `${state.event.stage || "Sem estágio"}`,
   ];
 
+  if (state.event.spotpassSearchName) {
+    tags.push(`SpotPass: ${state.event.spotpassSearchName}`);
+  }
+
   document.getElementById("hero-tags").innerHTML = tags
     .map((tag) => `<span class="hero-tag">${tag}</span>`)
     .join("");
@@ -474,6 +480,8 @@ function renderEventSection(metrics) {
     fieldTemplate("Taxa crédito", "event", "creditRate", state.event.creditRate, "number", "0.001"),
   ].join("");
 
+  document.getElementById("spotpass-search-name").value = state.event.spotpassSearchName || "";
+  document.getElementById("spotpass-event-link").value = state.event.spotpassEventLink || "";
   document.getElementById("event-notes").value = state.event.notes || "";
 }
 
@@ -918,6 +926,14 @@ function buildAlerts(data) {
       level: "attention",
       title: "Cadastro do evento incompleto",
       body: "Preencha nome do evento, cliente e responsável para melhorar o relatório executivo.",
+    });
+  }
+
+  if (!data.state.event.spotpassSearchName) {
+    alerts.push({
+      level: "attention",
+      title: "Busca do SpotPass não informada",
+      body: "Preencha o nome do evento no SpotPass para facilitar a localização automática na operação.",
     });
   }
 

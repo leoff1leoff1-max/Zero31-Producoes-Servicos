@@ -502,6 +502,10 @@ body::before {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.integration-grid {
+  margin-top: 14px;
+}
+
 .field {
   display: grid;
   gap: 8px;
